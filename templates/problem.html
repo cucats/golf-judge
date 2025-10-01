@@ -18,7 +18,6 @@
             });
         </script>
         <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
     </head>
     <body>
@@ -36,10 +35,6 @@
                         </div>
                         <textarea id="editor-dummy" name="user_input" style="display: none;"></textarea>
                         <div class="submission-pane">
-                            <select name="language" id="language-select">
-                                <option value="python">Python 3.11</option>
-                                <option value="cpp">C++23</option>
-                            </select>
                             <button id="submit" type="submit" class="submit">Submit</button>
                         </div>
                     </form>
@@ -51,8 +46,6 @@
         <script>
             let homepageURL = "{{ url_for('login', extra_content="Oops, looks like you got kicked (or maybe the server went down ?). You can always join back in.") }}";
             let leaderboardURL = "{{ url_for('leaderboard', extra_content="That&#39;s a wrap! Here are the final scores.") }}";
-            let selector = document.getElementById("language-select");
-            selector.value = "{{ language }}";
         </script>
         <script src="{{ url_for('static', filename='scripts/problem.js') }}"></script>
     </body>

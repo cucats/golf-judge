@@ -1,32 +1,17 @@
 let curr_time;
 
-let code = {
-    "python": `# Code goes here!`,
-    "cpp": `// Include standard library
-#include <bits/stdc++.h>
-
-using namespace std;
-
-int main() {
-    // Code goes here!
-
-    return 0;
-}`
-};
-
 function checkValidity() {
-    $.getJSON({
-        url: "/get_valid_username",
-        success: function(data){
+    fetch("/get_valid_username")
+        .then(response => response.text())
+        .then(data => {
             switch (data) {
-                case 1:
+                case "1":
                     window.location.replace(homepageURL);
                     break;
-                case 2:
+                case "2":
                     window.location.replace(leaderboardURL);
             }
-        }
-    });
+        });
 }
 
 function pad(n) {
@@ -34,7 +19,6 @@ function pad(n) {
 }
 
 function updateTimer() {
-    // var hours = Math.floor(curr_time / 3600); all events expected to be less than 1 hour
     let minutes = Math.floor((curr_time % 3600) / 60);
     let seconds = curr_time % 60;
     document.getElementById('timer').textContent = pad(minutes) + ":" + pad(seconds);
@@ -48,35 +32,20 @@ let editor = ace.edit("editor", {
     maxLines: 30
 });
 
-// NOTE: we don't save other language solutions if the code is actually submitted
-function updateLanguage(id, oldId) {
-    let mode = (id === "c" || id === "cpp") ? "c_cpp" : id;
-    editor.session.setMode("ace/mode/" + mode);
-
-    if (editor.getValue() !== "") code[oldId] = editor.getValue();
-    editor.setValue(code[id], -1);
-}
-
 let dummyeditor = document.getElementById("editor-dummy");
 
-$.getJSON({
-    url: "/get_time",
-    async: false,
-    success: function(data){
-        curr_time = data;
-    }
-});
+// Get initial time
+fetch("/get_time")
+    .then(response => response.text())
+    .then(data => {
+        curr_time = parseInt(data);
+        updateTimer();
+        setInterval(updateTimer, 1000);
+    });
 
 dummyeditor.value = editor.getValue();
 editor.getSession().on("change", function () {
     dummyeditor.value = editor.getValue();
-});
-
-selector.oldValue = selector.value;
-updateLanguage(selector.value, selector.oldValue);
-selector.addEventListener("change", (e) => {
-    updateLanguage(selector.value, selector.oldValue);
-    selector.oldValue = selector.value;
 });
 
 document.addEventListener('keydown', function (event) {
@@ -86,6 +55,4 @@ document.addEventListener('keydown', function (event) {
 });
 
 checkValidity();
-updateTimer();
 setInterval(checkValidity, 10000);
-setInterval(updateTimer, 1000);

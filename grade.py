@@ -1,37 +1,8 @@
-import subprocess
+import sys
+import io
 import resource
-
-from dataclasses import dataclass
-from typing import Optional, Callable
-
-
-@dataclass
-class Language:
-    id: str
-    name: str
-    extension: str
-    comment: str
-    compiled: bool
-    runcmd: Callable[[str], list[str]]
-    compcmd: Optional[Callable[[str], list[str]]] = None
-
-
-class Languages:
-    PYTHON = Language(
-        "python", "Python", ".py", "#", False,
-        lambda code: ["python", code]
-    )
-
-    CPP = Language(
-        "cpp", "C++", ".cpp", "//", True,
-        lambda code: [code + ".exe"],
-        lambda code: ["g++", code, "-o", code + ".exe", "-Wall", "-Wextra", "-O2", "-static", "-lm"]
-    )
-
-    table = {
-        "python": PYTHON,
-        "cpp": CPP
-    }
+import traceback
+from contextlib import redirect_stdout, redirect_stderr
 
 
 def limit(time=1, mem=64, proc=10):
@@ -40,77 +11,93 @@ def limit(time=1, mem=64, proc=10):
     resource.setrlimit(resource.RLIMIT_NPROC, (proc, resource.RLIM_INFINITY))
 
 
-def compile(code, language=Languages.CPP):
-    return subprocess.run(
-        language.compcmd(str(code)),
-        capture_output=True, check=True
-    )
+def grade(code_path, test_cases, grader_func, limits=(1, 64, 10)):
+    """
+    Grade a Python function submission for code golf.
 
+    Args:
+        code_path: Path to the submitted Python file
+        test_cases: List of test case inputs
+        grader_func: Function that takes (user_func, test_input) and returns (passed, expected, actual)
+        limits: Resource limits (time, mem, proc)
 
-def run(code, stdin, language=Languages.PYTHON, limits=(1, 64, 10)):
-    return subprocess.run(
-        ["sudo", "-u", "nobody"] + language.runcmd(str(code)),
-        input=stdin, text=True, capture_output=True, timeout=1, check=True, preexec_fn=lambda: limit(*limits)
-    )
-
-
-def grade(code, stdin, stdout, language=Languages.PYTHON, limits=(1, 64, 10), app=None):
+    Returns:
+        (verdict, output, code_length) tuple
+    """
     verdict = None
-    if language.compiled:
-        try:
-            compile(code, language)
-        except subprocess.CalledProcessError as e:
+    output = ""
+
+    # Read the code and get its length
+    with open(code_path, "r") as f:
+        user_code = f.read()
+    code_length = len(user_code)
+
+    # Try to import the user's function
+    try:
+        # Create a namespace for the user's code
+        user_namespace = {}
+        exec(user_code, user_namespace)
+
+        # Find the first function defined in the user's code
+        user_func = None
+        for name, obj in user_namespace.items():
+            if callable(obj) and not name.startswith("_"):
+                user_func = obj
+                break
+
+        if user_func is None:
             verdict = "CE"
-            output = e.stderr.decode('utf-8')
+            output = "No function found in your submission. Please define a function."
+            return verdict, output, code_length
 
-    if not verdict:
-        for i, j in enumerate(stdin):
-            stdin_format = "\n".join(j)
+    except Exception as e:
+        verdict = "CE"
+        output = f"Syntax/Import Error:\n{traceback.format_exc()}"
+        return verdict, output, code_length
 
-            try:
-                output = run(code, stdin_format, language, limits).stdout.strip().split("\n")
-                expt_output = stdout[i].copy()
+    # Test the function against all test cases
+    for i, test_input in enumerate(test_cases):
+        try:
+            # Capture stdout/stderr
+            stdout_capture = io.StringIO()
+            stderr_capture = io.StringIO()
 
-                if output != expt_output:
-                    verdict = f"WA{i}"
-                    new_output = f"Wrong answer on testcase {i + 1}: \nYour output:        Correct output:\n"
+            with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
+                # Run the grading function
+                passed, expected, actual = grader_func(user_func, test_input)
 
-                    if len(output) < len(expt_output):
-                        output += [""] * (len(expt_output) - len(output))
-                    else:
-                        expt_output += [""] * (len(output) - len(expt_output))
+            if not passed:
+                verdict = f"WA{i}"
+                output = f"Wrong answer on testcase {i + 1}:\n"
+                output += f"Input: {test_input}\n"
+                output += f"Expected: {expected}\n"
+                output += f"Got: {actual}\n"
 
-                    for actual, expt in zip(output, expt_output):
-                        new_output += actual + "".join((20 - len(actual)) * [" "]) + expt + "\n"
-
-                    output = new_output
-                    break
-
-            except subprocess.CalledProcessError as e:
-                verdict = f"RE/MLE{i}"
-                output = e.stderr
-                if e.stdout:
-                    output += f"\nBefore exiting, your program outputted the following:\n{e.stdout}"
-
+                # Include any stdout/stderr if present
+                if stdout_capture.getvalue():
+                    output += f"\nStdout: {stdout_capture.getvalue()}\n"
+                if stderr_capture.getvalue():
+                    output += f"\nStderr: {stderr_capture.getvalue()}\n"
                 break
 
-            except subprocess.TimeoutExpired as e:
-                verdict = f"TLE{i}"
-                output = "Your program was terminated for taking too long to complete."
-                if e.stdout:
-                    output += f"\nBefore being terminated, your program outputted the following:\n{e.stdout.decode('utf-8')}"
+        except TimeoutError:
+            verdict = f"TLE{i}"
+            output = f"Time limit exceeded on testcase {i + 1}"
+            break
 
-                break
+        except Exception as e:
+            verdict = f"RE{i}"
+            output = f"Runtime error on testcase {i + 1}:\n"
+            output += f"Input: {test_input}\n"
+            output += f"{traceback.format_exc()}"
+            break
 
-        else:
-            verdict = "AC"
-            output = "Congratulations, your program passed all the testcases!"
-
-    if output is None:
-        output = "(no output given)"
+    else:
+        verdict = "AC"
+        output = f"Congratulations! All tests passed.\nCode length: {code_length} bytes"
 
     if len(output) > 2000:
         output = output[:2000]
         output += "...\nOutput was truncated for exceeding 2000 characters."
 
-    return verdict, output
+    return verdict, output, code_length

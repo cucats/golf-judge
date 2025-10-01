@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Code Golf: Problems</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles/leaderboard.css') }}">
+        <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    </head>
+    <body>
+        <div class="vertical-layout">
+            <h1>Problems</h1>
+            <div class="leaderboard">
+                <div class="grid-item">
+                    <strong>#</strong>
+                </div>
+                <div class="grid-item">
+                    <strong>Problem</strong>
+                </div>
+                <div class="grid-item right-grid-item">
+                    <strong>Status</strong>
+                </div>
+                <div class="grid-item right-grid-item">
+                    <strong>Your Best</strong>
+                </div>
+            </div>
+            <div class="leaderboard">
+                {% for problem in problems %}
+                <div class="grid-item">
+                    {{ problem.id }}
+                </div>
+                <div class="grid-item">
+                    <a href="{{ url_for('problem', problem_id=problem.id) }}">{{ problem.title }}</a>
+                </div>
+                <div class="grid-item right-grid-item">
+                    {% if problem.status == 'solved' %}
+                        ✓
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div class="grid-item right-grid-item">
+                    {% if problem.code_length %}
+                        {{ problem.code_length }} bytes
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 20px;">
+                <a href="{{ url_for('leaderboard') }}">View Leaderboard</a>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,26 +1,23 @@
 let admin = false;
 
-$.getJSON({
-    url: "/auth",
-    success: function(data) {
+fetch("/auth")
+    .then(response => response.text())
+    .then(data => {
         if (data == 1) {
             admin = true;
         }
-    }
-});
+    });
 
 function updateLeaderboard() {
-    $.getJSON({
-        url: "/get_scores",
-        success: function(data){
+    fetch("/get_scores")
+        .then(response => response.json())
+        .then(data => {
             let scorearr = [];
             for (const key in data) {
                 scorearr.push([key, data[key][0], data[key][1]]);
             }
 
-            scorearr.sort(function(x, y) {
-                return y[2] - x[2];
-            });
+            scorearr.sort((x, y) => y[2] - x[2]);
 
             let htmldata = "";
             scorearr.forEach(([username, problems, score]) => {
@@ -45,9 +42,8 @@ function updateLeaderboard() {
                 `;
             });
 
-            $("#leaderboard").html(htmldata);
-        }
-    });
+            document.getElementById("leaderboard").innerHTML = htmldata;
+        });
 }
 
 updateLeaderboard();

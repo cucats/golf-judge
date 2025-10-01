@@ -4,7 +4,6 @@
         <title>PyDash: Waiting Room</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='styles/done.css') }}">
         <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
     </head>
     <body>
         <div class="vertical-layout">
@@ -12,29 +11,27 @@
         </div>
     <script>
         function checkRedirect() {
-            $.getJSON({
-                url: "/get_begun",
-                success: function(data){
-                    if (data === 1) {
+            fetch("/get_begun")
+                .then(response => response.text())
+                .then(data => {
+                    if (data === "1") {
                         window.location.replace("{{ url_for('problems') }}");
                     }
-                }
-            });
+                });
         }
 
         function checkValidity() {
-            $.getJSON({
-                url: "/get_valid_username",
-                success: function(data){
+            fetch("/get_valid_username")
+                .then(response => response.text())
+                .then(data => {
                     switch (data) {
-                        case 1:
+                        case "1":
                             window.location.replace("{{ url_for('login', extra_content="Oops, looks like you got kicked (or maybe the server went down?). You can always join back in.") }}");
                             break;
-                        case 2:
+                        case "2":
                             window.location.replace("{{ url_for('leaderboard', extra_content="Hmmm... the race is over and you never even started! How did that happen?") }}");
                     }
-                }
-            });
+                });
         }
 
         checkRedirect();
