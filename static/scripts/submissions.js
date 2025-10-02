@@ -48,4 +48,4 @@ function updateSubmissions() {
 }
 
 updateSubmissions();
-setInterval(updateSubmissions, 10000);
+setInterval(updateSubmissions, 5000);

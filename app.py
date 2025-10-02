@@ -238,8 +238,11 @@ def get_submissions():
         with open("submissions.json", "r") as f:
             submissions = json.load(f)
             for id, s in submissions.items():
-                with open(root / "submissions" / (id + ".py"), "r") as f:
-                    s["code"] = f.read()
+                try:
+                    with open(root / "submissions" / (id + ".py"), "r") as f:
+                        s["code"] = f.read()
+                except FileNotFoundError:
+                    s["code"] = "[File not found]"
         return jsonify(submissions)
     else:
         return "", 403
