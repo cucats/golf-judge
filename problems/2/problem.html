@@ -1,0 +1,29 @@
+<h1>List Generation</h1>
+<p>
+  Given three integers <code>n</code>, <code>u</code>, and <code>s</code>,
+  return any list of integers such that:
+</p>
+<ul>
+  <li><code>len(result) == n</code> (the list has exactly n elements)</li>
+  <li>
+    <code>len(set(result)) == u</code> (the list has exactly u unique elements)
+  </li>
+  <li><code>sum(result) == s</code> (the sum of all elements equals s)</li>
+</ul>
+
+<p><strong>Constraints:</strong></p>
+<ul>
+  <li>1 ≤ u ≤ n ≤ 20</li>
+  <li>-1000 ≤ s ≤ 1000</li>
+  <li>A valid solution is guaranteed to exist</li>
+</ul>
+
+<p><strong>Example:</strong></p>
+<p>
+  <code>f(5, 3, 10)</code> could return <code>[0, 0, 2, 3, 5]</code> (length 5,
+  3 unique values, sum 10)
+</p>
+<p>
+  <code>f(3, 1, 9)</code> could return <code>[3, 3, 3]</code> (length 3, 1
+  unique value, sum 9)
+</p>

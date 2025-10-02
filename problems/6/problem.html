@@ -1,0 +1,37 @@
+<h1>RPN Calculator</h1>
+<p>
+  Given a string in Reverse Polish Notation (RPN), evaluate it and return the
+  result as an integer.
+</p>
+
+<p><strong>Supported operations:</strong></p>
+<ul>
+  <li><code>+</code>: Addition</li>
+  <li><code>-</code>: Subtraction</li>
+  <li><code>*</code>: Multiplication</li>
+</ul>
+
+<p><strong>RPN rules:</strong></p>
+<ul>
+  <li>Numbers and operators are separated by spaces</li>
+  <li>
+    Operators pop two operands from the stack, perform the operation, and push
+    the result
+  </li>
+  <li>The final result is the only value left on the stack</li>
+</ul>
+
+<p><strong>Constraints:</strong></p>
+<ul>
+  <li>Input is a valid RPN expression</li>
+  <li>All intermediate and final results fit in a Python integer</li>
+  <li>Return value must be an integer</li>
+</ul>
+
+<p><strong>Examples:</strong></p>
+<p><code>f("3 10 5 + *")</code> returns <code>45</code> (3 * (10 + 5))</p>
+<p><code>f("15 7 - 3 *")</code> returns <code>24</code> ((15 - 7) * 3)</p>
+<p>
+  <code>f("5 1 2 + 4 * + 3 -")</code> returns <code>14</code> (5 + ((1 + 2) * 4)
+  - 3)
+</p>

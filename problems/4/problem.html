@@ -1,0 +1,21 @@
+<h1>Nested List Wrapping</h1>
+<p>
+  Given a nested list structure, replace every list with a singleton list
+  containing that list. Non-list elements should remain unchanged.
+</p>
+
+<p><strong>Constraints:</strong></p>
+<ul>
+  <li>Nesting depth ≤ 5</li>
+  <li>Elements can be integers or lists</li>
+  <li>Apply transformation recursively to all nested lists</li>
+</ul>
+
+<p><strong>Examples:</strong></p>
+<p><code>f([1, 2, 3])</code> returns <code>[[1, 2, 3]]</code></p>
+<p><code>f([1, 2, [3, 4]])</code> returns <code>[[1, 2, [[3, 4]]]]</code></p>
+<p>
+  <code>f([1, 2, [3, 4, [5]], [6, 7]])</code> returns
+  <code>[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]</code>
+</p>
+<p><code>f(5)</code> returns <code>5</code> (non-list elements unchanged)</p>

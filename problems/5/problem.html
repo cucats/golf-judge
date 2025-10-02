@@ -1,0 +1,30 @@
+<h1>Balanced Parentheses</h1>
+<p>
+  Given a string <code>s</code> containing only the characters
+  <code>(</code> and <code>)</code>, determine if the parentheses are balanced.
+  Return a truthy value if balanced, falsy otherwise.
+</p>
+
+<p><strong>Definition of balanced:</strong></p>
+<ul>
+  <li>
+    Every opening parenthesis <code>(</code> has a matching closing parenthesis
+    <code>)</code>
+  </li>
+  <li>Parentheses are properly nested (no closing before opening)</li>
+</ul>
+
+<p><strong>Constraints:</strong></p>
+<ul>
+  <li>0 ≤ len(s) ≤ 100</li>
+  <li>String contains only <code>(</code> and <code>)</code> characters</li>
+</ul>
+
+<p><strong>Examples:</strong></p>
+<p><code>f("((()()))()())")</code> returns truthy (balanced)</p>
+<p>
+  <code>f("((()())()()") </code> returns falsy (not balanced - missing closing)
+</p>
+<p><code>f(")(") </code> returns falsy (not balanced - closes before opens)</p>
+<p><code>f("()()") </code> returns truthy (balanced)</p>
+<p><code>f("") </code> returns truthy (empty string is balanced)</p>
