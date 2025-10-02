@@ -62,6 +62,17 @@ body {
     font-family: 'Ubuntu Mono', monospace;
 }
 
+.problem-column ul,
+.problem-column ol {
+    margin-left: 24px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.problem-column li {
+    margin-bottom: 4px;
+}
+
 .submission-column {
     flex: 1;
     min-width: 0;
