@@ -29,10 +29,20 @@ let editor = ace.edit("editor", {
     theme: "ace/theme/cobalt",
     mode: "ace/mode/python",
     minLines: 20,
-    maxLines: 30
+    maxLines: 30,
+    useSoftTabs: false,  // Use actual tab characters
+    tabSize: 4,
+    showInvisibles: true  // Show whitespace characters
 });
 
 let dummyeditor = document.getElementById("editor-dummy");
+let byteCounter = document.getElementById("byte-counter");
+
+function updateByteCount() {
+    let code = editor.getValue();
+    let byteCount = new Blob([code]).size;
+    byteCounter.textContent = byteCount + " bytes";
+}
 
 // Get initial time
 fetch("/get_time")
@@ -44,8 +54,11 @@ fetch("/get_time")
     });
 
 dummyeditor.value = editor.getValue();
+updateByteCount();
+
 editor.getSession().on("change", function () {
     dummyeditor.value = editor.getValue();
+    updateByteCount();
 });
 
 document.addEventListener('keydown', function (event) {

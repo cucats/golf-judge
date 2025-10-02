@@ -27,10 +27,13 @@ def grade(code_path, test_cases, grader_func, limits=(1, 64, 10)):
     verdict = None
     output = ""
 
-    # Read the code and get its length
-    with open(code_path, "r") as f:
-        user_code = f.read()
-    code_length = len(user_code)
+    # Read the code and get its length in bytes
+    with open(code_path, "rb") as f:
+        user_code_bytes = f.read()
+    code_length = len(user_code_bytes)
+
+    # Decode for execution
+    user_code = user_code_bytes.decode("utf-8")
 
     # Try to import the user's function
     try:
@@ -38,17 +41,13 @@ def grade(code_path, test_cases, grader_func, limits=(1, 64, 10)):
         user_namespace = {}
         exec(user_code, user_namespace)
 
-        # Find the first function defined in the user's code
-        user_func = None
-        for name, obj in user_namespace.items():
-            if callable(obj) and not name.startswith("_"):
-                user_func = obj
-                break
-
-        if user_func is None:
+        # Look for function named 'f'
+        if 'f' not in user_namespace or not callable(user_namespace['f']):
             verdict = "CE"
-            output = "No function found in your submission. Please define a function."
+            output = "No function named 'f' found in your submission. Please define a function named 'f'."
             return verdict, output, code_length
+
+        user_func = user_namespace['f']
 
     except Exception as e:
         verdict = "CE"

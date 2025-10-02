@@ -1,30 +1,67 @@
-div {
-    font-family: Segoe UI, ui-sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #101828;
+    color: #e5e7eb;
+    font-family: 'Ubuntu Mono', monospace;
+    min-height: 100vh;
 }
 
 .vertical-layout {
-    margin-top: 15vh;
-
+    padding: 60px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 .grid {
-    width: 60vw;
+    width: min(1200px, 95vw);
     display: grid;
-    grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    background-color: #1a2332;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+}
+
+.grid:first-child {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .dropdown-toggle {
     background: none;
     border: none;
     cursor: pointer;
+    color: #60a5fa;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.dropdown-toggle:hover {
+    color: #93c5fd;
 }
 
 .grid-item {
-    padding: 15px 0;
-    border-bottom: 1px solid #C0C0C0;
+    padding: 16px 20px;
+    border-bottom: 1px solid #2d3748;
+}
+
+.grid:first-child .grid-item {
+    background-color: #1f2937;
+    font-weight: bold;
+    border-bottom: 2px solid #374151;
+}
+
+.grid:not(:first-child) .grid-item {
+    background-color: #1a2332;
+}
+
+.grid:not(:first-child):hover .grid-item {
+    background-color: #1f2937;
 }
 
 .right-grid-item {
@@ -32,15 +69,18 @@ div {
 }
 
 .dropdown-content {
-    width: 60vw;
+    width: min(1200px, 95vw);
+    margin: 0 auto;
 }
 
 .code {
-    font-family: "Courier New", Courier, monospace;
+    font-family: 'Ubuntu Mono', monospace;
     overflow: auto;
-    border: 1px solid grey;
-    border-radius: 3px;
-    padding: 5px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: #1f2937;
+    margin: 0 0 16px 0;
 }
 
 .hide {

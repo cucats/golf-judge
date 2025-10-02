@@ -19,7 +19,7 @@ PROBLEM_TEXTS = []
 PROBLEM_TEST_CASES = []
 PROBLEM_GRADERS = []
 
-DURATION = 1800
+DURATION = 3600
 START_TIME = float("inf")
 
 root = Path(__file__).parent
@@ -30,28 +30,20 @@ while True:
     problem = root / "problems" / str(i)
 
     try:
-        with open(problem / "problem.txt", "r") as f:
-            txt = f.readlines()
-            PROBLEM_TITLES.append(txt.pop(0)[:-1])
-            PROBLEM_TEXTS.append("")
-
-            inner = False
-            j = 0
-            while j < len(txt := "".join(txt).strip()):
-                try:
-                    if txt[j : j + 4] == "```\n" and not inner:
-                        PROBLEM_TEXTS[-1] += '<pre class="code"><code>'
-                        inner = True
-                        j += 4
-                    elif txt[j : j + 4] == "\n```" and inner:
-                        PROBLEM_TEXTS[-1] += "</code></pre>"
-                        inner = False
-                        j += 4
-                    else:
-                        raise IndexError()
-                except IndexError:
-                    PROBLEM_TEXTS[-1] += txt[j]
-                    j += 1
+        with open(problem / "problem.html", "r") as f:
+            html_content = f.read()
+            # Extract title from first line or first <h1> tag
+            lines = html_content.strip().split("\n")
+            if lines[0].startswith("<h1>"):
+                # Extract title from h1 tag
+                title_line = lines[0]
+                title = title_line.replace("<h1>", "").replace("</h1>", "").strip()
+                PROBLEM_TITLES.append(title)
+                PROBLEM_TEXTS.append("\n".join(lines[1:]))
+            else:
+                # First line is plain text title
+                PROBLEM_TITLES.append(lines[0])
+                PROBLEM_TEXTS.append("\n".join(lines[1:]))
 
         # Load test cases from tests.json
         with open(problem / "tests.json", "r") as f:
@@ -99,17 +91,19 @@ def problems():
             code_length, verdict = user_scores[i]
             if verdict == "AC":
                 status = "solved"
-        problem_list.append({
-            "id": i,
-            "title": PROBLEM_TITLES[i],
-            "status": status,
-            "code_length": code_length
-        })
+        problem_list.append(
+            {
+                "id": i,
+                "title": PROBLEM_TITLES[i],
+                "status": status,
+                "code_length": code_length,
+            }
+        )
 
     return render_template("problems.html", problems=problem_list)
 
 
-@app.route("/problem/<int:problem_id>", methods=["GET", "POST"])
+@app.route("/problems/<int:problem_id>", methods=["GET", "POST"])
 def problem(problem_id):
     if "username" not in session:
         return redirect(url_for("login"))
@@ -119,50 +113,55 @@ def problem(problem_id):
     if problem_id >= NUM_PROBLEMS or problem_id < 0:
         return redirect(url_for("problems"))
 
+    # Check if contest is over
+    contest_ended = time.time() >= START_TIME + DURATION
+
     user_input = ""
     output = "Output shows up here!"
 
     match request.method:
         case "POST":
-            user_input = request.form["user_input"]
+            # Don't allow submissions after contest ends
+            if contest_ended:
+                output = "Contest has ended. No more submissions allowed."
+            else:
+                user_input = request.form["user_input"]
 
-            with open("submissions.json", "r") as f:
-                submissions = json.load(f)
-                while (id := token_urlsafe(16)) in submissions:
-                    pass
+                with open("submissions.json", "r") as f:
+                    submissions = json.load(f)
+                    while (id := token_urlsafe(16)) in submissions:
+                        pass
 
-            code_dir = root / "submissions"
-            if not code_dir.exists():
-                code_dir.mkdir()
-            code_path = code_dir / (id + ".py")
-            with open(code_path, "w+") as f:
-                f.write(user_input)
+                code_dir = root / "submissions"
+                if not code_dir.exists():
+                    code_dir.mkdir()
+                code_path = code_dir / (id + ".py")
+                with open(code_path, "w+") as f:
+                    f.write(user_input)
 
-            verdict, output, code_length = grade(
-                code_path,
-                PROBLEM_TEST_CASES[problem_id],
-                PROBLEM_GRADERS[problem_id]
-            )
+                verdict, output, code_length = grade(
+                    code_path, PROBLEM_TEST_CASES[problem_id], PROBLEM_GRADERS[problem_id]
+                )
 
-            # Update score if AC or if this is a better (shorter) solution
-            if verdict == "AC":
-                if problem_id not in scores[session["username"]]:
-                    scores[session["username"]][problem_id] = (code_length, verdict)
-                else:
-                    old_length, _ = scores[session["username"]][problem_id]
-                    if code_length < old_length:
+                # Update score if AC or if this is a better (shorter) solution
+                if verdict == "AC":
+                    if problem_id not in scores[session["username"]]:
                         scores[session["username"]][problem_id] = (code_length, verdict)
+                    else:
+                        old_length, _ = scores[session["username"]][problem_id]
+                        if code_length < old_length:
+                            scores[session["username"]][problem_id] = (code_length, verdict)
 
-            submissions[id] = {
-                "username": session["username"],
-                "problem": problem_id,
-                "verdict": verdict,
-                "code_length": code_length,
-                "time": time.time() - START_TIME,
-            }
+                submissions[id] = {
+                    "username": session["username"],
+                    "problem": problem_id,
+                    "verdict": verdict,
+                    "code_length": code_length,
+                    "time": time.time() - START_TIME,
+                }
 
-            with open("submissions.json", "w") as f:
-                json.dump(submissions, f, indent=4)
+                with open("submissions.json", "w") as f:
+                    json.dump(submissions, f, indent=4)
 
     return render_template(
         "problem.html",
@@ -171,17 +170,65 @@ def problem(problem_id):
         statement=PROBLEM_TEXTS[problem_id],
         content=user_input,
         output=output,
+        contest_ended=contest_ended,
     )
 
 
 @app.route("/get_scores")
 def get_scores():
-    # Return {username: [problems_solved, total_code_length]}
+    # Calculate best scores per problem
+    best_scores = {}  # {problem_id: min_length}
+    score_counts = {}  # {problem_id: {length: count}}
+
+    for user_scores in scores.values():
+        for problem_id, (length, verdict) in user_scores.items():
+            if verdict == "AC":
+                if problem_id not in best_scores or length < best_scores[problem_id]:
+                    best_scores[problem_id] = length
+                if problem_id not in score_counts:
+                    score_counts[problem_id] = {}
+                score_counts[problem_id][length] = (
+                    score_counts[problem_id].get(length, 0) + 1
+                )
+
+    # Calculate scores with gold/diamond info
     result = {}
     for user, user_scores in scores.items():
-        solved = sum(1 for _, verdict in user_scores.values() if verdict == "AC")
-        total_length = sum(length for length, verdict in user_scores.values() if verdict == "AC")
-        result[user] = [solved, total_length]
+        solved = 0
+        total_score = 0
+        golds = []
+        diamonds = []
+        problem_scores = []
+
+        for problem_id in range(NUM_PROBLEMS):
+            if problem_id in user_scores:
+                length, verdict = user_scores[problem_id]
+                if verdict == "AC":
+                    solved += 1
+                    total_score += length
+                    problem_scores.append({"score": length, "verdict": "AC"})
+
+                    # Check for gold (best score for this problem)
+                    if length == best_scores.get(problem_id):
+                        golds.append(problem_id)
+                        # Check for diamond (unique best score)
+                        if score_counts[problem_id][length] == 1:
+                            diamonds.append(problem_id)
+                else:
+                    total_score += 1000
+                    problem_scores.append({"score": 1000, "verdict": verdict})
+            else:
+                total_score += 1000
+                problem_scores.append({"score": 1000, "verdict": "—"})
+
+        result[user] = {
+            "solved": solved,
+            "score": total_score,
+            "golds": golds,
+            "diamonds": diamonds,
+            "problem_scores": problem_scores
+        }
+
     return jsonify(result)
 
 

@@ -1,3 +1,296 @@
 {
-
+    "4ucgvPycXcbA7RPr-7gf8A": {
+        "username": "awdawd",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 56.146479845047
+    },
+    "vzSytEdm0walyH0SfDXPRg": {
+        "username": "awdawd",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 57.31707000732422
+    },
+    "CHPBhyoXDfwApUs2UoknBA": {
+        "username": "awdawd",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 58.791961669921875
+    },
+    "8qLNhfL8Ard-Ced44dxt3A": {
+        "username": "awdawd",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 59.35071086883545
+    },
+    "zYyrUKjnjGmrmb696bY1xA": {
+        "username": "awdawd",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 59.89226222038269
+    },
+    "snvZ3ZWnt3jeyyBKGpI9QQ": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 79.36371636390686
+    },
+    "Ml_f4kpqeq1isnadIMCBWA": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 88.61158108711243
+    },
+    "7c-gZYm7EfeDrlGcvv_oPg": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "WA0",
+        "code_length": 19,
+        "time": 92.0861599445343
+    },
+    "cNpB9daXFLZjlY5OJN28AQ": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 95.96496105194092
+    },
+    "aLLIj-bKrvBnTinjmhq6BQ": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 464.4678430557251
+    },
+    "3k-bo6KaDZjbIxRQ6QgWuw": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 479.28123235702515
+    },
+    "mjECe6u4FV1bUb5uZ6M8Tg": {
+        "username": "awdawd",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 506.77677273750305
+    },
+    "dQHF_JGR9ewc050KL0gNNg": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 94.55608820915222
+    },
+    "yySS_fiaNHUE6vcoJE47Jg": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 95.42491459846497
+    },
+    "3WV953LzosZUsB95LXPKTA": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 96.50516986846924
+    },
+    "KsA4Wz1x14ngZ5ILE7uXBA": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 97.33482432365417
+    },
+    "7sZ1_cVnVhGSu2jJ7YnJJQ": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 97.77155661582947
+    },
+    "ob6JrEYo86IPtwifnUFk5A": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 98.13522863388062
+    },
+    "g-SMXVEuxhHEmwpjIGyoDQ": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 98.72894406318665
+    },
+    "14BLEJI0NQq_xSSSUHuuJQ": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 99.16695618629456
+    },
+    "tMfMza4Ie6haydzqAQb97A": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 99.56193709373474
+    },
+    "TqCRPMGspuaWojAAGhxF6Q": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 99.96043419837952
+    },
+    "WdKIYQmDfrR9SXalSpzxfA": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 100.34594130516052
+    },
+    "XHzQvjRy29HBULT8m75yBQ": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 100.70490837097168
+    },
+    "EHDT68a1gy93nif2b75Jog": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 101.10434222221375
+    },
+    "EWC4xq7FL3Fs0f-WQKbk6A": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 101.51953220367432
+    },
+    "O8864wATtIUTq0ts0J7o7A": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 101.8873016834259
+    },
+    "cD5EcNN7Ic4AP1BbvUEqNg": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 102.28683996200562
+    },
+    "n_exP38FgICrqvmNJ5Bj_w": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 102.63953232765198
+    },
+    "kLkWED5MHzw863PxVMegSQ": {
+        "username": "afesrgdthfy",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 0,
+        "time": 103.0407509803772
+    },
+    "o9gZ-4t5DAzLs1CLXvd_-A": {
+        "username": "awdfesrdt",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 14.190876245498657
+    },
+    "t_sE0RCaC0bUuNe928QWAA": {
+        "username": "awdfesrdt",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 18.386208295822144
+    },
+    "mGPzbiIDSrLdwP-Ecn2Brg": {
+        "username": "dafesgrdtfnygmu",
+        "problem": 1,
+        "verdict": "AC",
+        "code_length": 18,
+        "time": 62.11535620689392
+    },
+    "1dqztv5_g3NqIeVcanglaA": {
+        "username": "awdfesgrd",
+        "problem": 0,
+        "verdict": "CE",
+        "code_length": 68,
+        "time": 78.58576226234436
+    },
+    "t8IvPAha4TKSUm5v3w57uw": {
+        "username": "awdfesgrd",
+        "problem": 0,
+        "verdict": "WA0",
+        "code_length": 80,
+        "time": 114.28497290611267
+    },
+    "z4dD94petOMFUihh6ET-Dg": {
+        "username": "awdfesgrd",
+        "problem": 0,
+        "verdict": "WA0",
+        "code_length": 68,
+        "time": 165.49212002754211
+    },
+    "XjaNHtsKw_S_-Pun-x0qVA": {
+        "username": "awdfesgrd",
+        "problem": 0,
+        "verdict": "AC",
+        "code_length": 72,
+        "time": 181.5544261932373
+    },
+    "0QT-5_WlSCMU3lQXRSYKfA": {
+        "username": "awdawdawd",
+        "problem": 0,
+        "verdict": "AC",
+        "code_length": 72,
+        "time": 53.182862281799316
+    },
+    "IKcpcxCiedB8jXfxMuJzCg": {
+        "username": "awdawdawd",
+        "problem": 0,
+        "verdict": "AC",
+        "code_length": 133,
+        "time": 88.31823992729187
+    },
+    "uDPe9Zpqy27xcFDU4r-9qg": {
+        "username": "awdawdawd",
+        "problem": 0,
+        "verdict": "AC",
+        "code_length": 72,
+        "time": 112.17030501365662
+    },
+    "BizU6KZbh8kr6bs_dcRNhw": {
+        "username": "awdawdawd",
+        "problem": 0,
+        "verdict": "AC",
+        "code_length": 72,
+        "time": 117.12262773513794
+    },
+    "4qHy1q3IM_p4d-XOcdN9AQ": {
+        "username": "awdawdawd",
+        "problem": 0,
+        "verdict": "AC",
+        "code_length": 72,
+        "time": 118.6791479587555
+    }
 }

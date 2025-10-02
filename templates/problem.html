@@ -4,23 +4,15 @@
         <title>{{ title }}</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='styles/problem.css') }}">
         <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
-        <script type="text/x-mathjax-config">
-            MathJax.Hub.Config({
-                TeX: {
-                    equationNumbers: {
-                        autoNumber: "AMS"
-                    }
-                },
-                tex2jax: {
-                  inlineMath: [ ['$','$'], ['$$', '$$'] ],
-                  processEscapes: true,
-                }
-            });
-        </script>
-        <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
     </head>
     <body>
+        <nav style="background-color: #1a2332; padding: 16px 32px; border-bottom: 2px solid #374151;">
+            <div style="max-width: 1400px; margin: 0 auto; display: flex; gap: 24px;">
+                <a href="{{ url_for('problems') }}" style="color: #60a5fa; text-decoration: none; font-weight: bold;">Problems</a>
+                <a href="{{ url_for('leaderboard') }}" style="color: #9ca3af; text-decoration: none;">Leaderboard</a>
+            </div>
+        </nav>
         <div class="vertical-layout">
             <div class="horizontal-layout">
                 <div class="problem-column">
@@ -35,7 +27,12 @@
                         </div>
                         <textarea id="editor-dummy" name="user_input" style="display: none;"></textarea>
                         <div class="submission-pane">
+                            <div id="byte-counter" style="color: #9ca3af; margin-right: auto;">0 bytes</div>
+                            {% if not contest_ended %}
                             <button id="submit" type="submit" class="submit">Submit</button>
+                            {% else %}
+                            <div style="color: #ef4444;">Contest has ended</div>
+                            {% endif %}
                         </div>
                     </form>
                     <pre class="code" style="max-height: 15vh;"><code>{{ output }}</code></pre>
