@@ -19,9 +19,10 @@ function pad(n) {
 }
 
 function updateTimer() {
+    let hours = Math.floor(curr_time / 3600);
     let minutes = Math.floor((curr_time % 3600) / 60);
     let seconds = curr_time % 60;
-    document.getElementById('timer').textContent = pad(minutes) + ":" + pad(seconds);
+    document.getElementById('timer').textContent = pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
     curr_time--;
 }
 

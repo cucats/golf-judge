@@ -19,7 +19,7 @@ PROBLEM_TEXTS = []
 PROBLEM_TEST_CASES = []
 PROBLEM_GRADERS = []
 
-DURATION = 3600
+DURATION = 5400
 START_TIME = float("inf")
 
 root = Path(__file__).parent
