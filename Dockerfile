@@ -1,18 +1,17 @@
 # To avoid forkbombs, run with --ulimit nproc=20:20 or similar.
 
-FROM gcc:13.2
 FROM python:3.11
 
 WORKDIR /app
 
-COPY requirements.txt .
+RUN apt-get update && apt-get install -y sudo gcc
+RUN pip install uv
 
-RUN pip install -r requirements.txt
-RUN apt-get update
-RUN apt install sudo
+COPY uv.lock pyproject.toml ./
+RUN uv sync
 
 COPY . .
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+CMD ["uv", "run", "python", "app.py"]
