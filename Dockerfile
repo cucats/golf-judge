@@ -36,6 +36,7 @@ WORKDIR /app
 
 # Copy the compiled binary from builder
 COPY --from=builder /app/target/release/golf .
+COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/problems ./problems
