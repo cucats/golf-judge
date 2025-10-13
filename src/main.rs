@@ -67,6 +67,10 @@ async fn main() {
         )
         .route("/admin/contests/{id}/end", post(routes::admin_end_contest))
         .route(
+            "/admin/contests/{id}/delete",
+            post(routes::admin_delete_contest),
+        )
+        .route(
             "/admin/contests/{id}/submissions",
             get(routes::admin_submissions),
         )

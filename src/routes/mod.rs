@@ -326,6 +326,34 @@ pub async fn admin_end_contest(
     Redirect::to("/admin")
 }
 
+pub async fn admin_delete_contest(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/");
+        }
+    } else {
+        return Redirect::to("/login");
+    }
+
+    // Only allow deleting ended contests
+    if let Ok(Some(contest)) = state.get_contest(contest_id).await {
+        if contest.status == "ended" {
+            // Delete contest (CASCADE will delete submissions and contest_problems)
+            let _ = sqlx::query("DELETE FROM contests WHERE id = $1")
+                .bind(contest_id)
+                .execute(&state.db)
+                .await;
+        }
+    }
+
+    Redirect::to("/admin")
+}
+
 #[derive(serde::Serialize)]
 struct ProblemWithOrder {
     id: String,

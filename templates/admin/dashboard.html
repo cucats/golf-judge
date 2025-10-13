@@ -52,6 +52,11 @@
                                     <button type="submit" class="danger">End</button>
                                 </form>
                             {% endif %}
+                            {% if contest.status == "ended" %}
+                                <form method="POST" action="/admin/contests/{{ contest.id }}/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this contest? This will permanently remove all submissions and data.');">
+                                    <button type="submit" class="danger">Delete</button>
+                                </form>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
