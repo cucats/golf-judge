@@ -303,6 +303,7 @@ impl CodeRunner {
         };
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
         // Check if output matches expected
         let actual = stdout.trim();
@@ -312,20 +313,66 @@ impl CodeRunner {
             Ok(RunResult {
                 verdict: Verdict::AC,
                 time_ms,
-                output: stdout,
+                output: String::new(),
             })
         } else {
+            // Find which test case failed
+            let actual_lines: Vec<&str> = actual.lines().collect();
+            let expected_lines: Vec<&str> = expected.lines().collect();
+
+            let mut failed_test_num = 0;
+            let mut expected_value = String::new();
+            let mut actual_value = String::new();
+
+            for (i, (exp, act)) in expected_lines.iter().zip(actual_lines.iter()).enumerate() {
+                if exp != act {
+                    failed_test_num = i + 1;
+                    expected_value = exp.to_string();
+                    actual_value = act.to_string();
+                    break;
+                }
+            }
+
+            if failed_test_num == 0 {
+                if actual_lines.len() != expected_lines.len() {
+                    if actual_lines.len() < expected_lines.len() {
+                        failed_test_num = actual_lines.len() + 1;
+                        expected_value = expected_lines.get(actual_lines.len()).unwrap_or(&"").to_string();
+                        actual_value = "(no output)".to_string();
+                    } else {
+                        failed_test_num = expected_lines.len() + 1;
+                        expected_value = "(no more output expected)".to_string();
+                        actual_value = actual_lines.get(expected_lines.len()).unwrap_or(&"").to_string();
+                    }
+                }
+            }
+
+            // Extract input info from stderr for the failed test case
+            let mut input_info = String::new();
+            if !stderr.is_empty() && failed_test_num > 0 {
+                let marker = format!("TESTCASE {}:", failed_test_num);
+                for line in stderr.lines() {
+                    if line.starts_with(&marker) {
+                        if let Some(input_desc) = line.strip_prefix(&marker) {
+                            input_info = format!("Input: {}\n\n", input_desc.trim());
+                        }
+                        break;
+                    }
+                }
+            }
+
             Ok(RunResult {
                 verdict: Verdict::WA,
                 time_ms,
                 output: format!(
-                    "Expected:\n{}\n\nGot:\n{}",
-                    expected,
-                    if actual.len() > 1000 {
-                        format!("{}... (truncated)", &actual[..1000])
-                    } else {
-                        actual.to_string()
-                    }
+                    "Failed on test case {}
+
+{}Expected: {}
+Got: {}",
+                    failed_test_num,
+                    input_info,
+                    expected_value,
+                    actual_value
                 ),
             })
         }

@@ -12,14 +12,14 @@
     </div>
 
     <!-- Filters -->
-    <form method="GET" style="background-color: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 12px; align-items: end;">
+    <form method="GET" style="background-color: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
         <div>
             <label style="display: block; margin-bottom: 4px; color: #94a3b8; font-size: 0.875rem;">Username</label>
-            <input type="text" name="username" value="{{ filter_username }}" placeholder="Filter by username" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: #e5e7eb;">
+            <input type="text" name="username" value="{{ filter_username }}" placeholder="Filter by username" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: #e5e7eb; min-width: 200px;">
         </div>
         <div>
             <label style="display: block; margin-bottom: 4px; color: #94a3b8; font-size: 0.875rem;">Verdict</label>
-            <select name="verdict" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: #e5e7eb;">
+            <select name="verdict" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: #e5e7eb; min-width: 120px;">
                 <option value="">All</option>
                 <option value="AC" {% if filter_verdict == "AC" %}selected{% endif %}>AC</option>
                 <option value="WA" {% if filter_verdict == "WA" %}selected{% endif %}>WA</option>
@@ -27,8 +27,8 @@
                 <option value="RE" {% if filter_verdict == "RE" %}selected{% endif %}>RE</option>
             </select>
         </div>
-        <button type="submit" style="padding: 8px 16px; border-radius: 4px; background-color: #3b82f6; color: white; border: none; cursor: pointer;">Filter</button>
-        <a href="/admin/contests/{{ contest.id }}/submissions" style="padding: 8px 16px; border-radius: 4px; background-color: #334155; color: white; text-decoration: none; display: inline-block;">Clear</a>
+        <button type="submit" style="padding: 8px 16px; border-radius: 4px; background-color: #3b82f6; color: white; border: none; cursor: pointer; height: fit-content;">Filter</button>
+        <a href="/admin/contests/{{ contest.id }}/submissions" style="padding: 8px 16px; border-radius: 4px; background-color: #334155; color: white; text-decoration: none; display: inline-block; height: fit-content;">Clear</a>
     </form>
 
     <div style="background-color: #1e293b; border-radius: 8px; overflow-x: auto;">
@@ -61,9 +61,9 @@
                         {% else if sub.verdict == "WA" %}
                             <span style="color: #ef4444; font-weight: 600;">WA</span>
                         {% else if sub.verdict == "TLE" %}
-                            <span style="color: #f59e0b; font-weight: 600;">TLE</span>
+                            <span style="color: #eab308; font-weight: 600;">TLE</span>
                         {% else if sub.verdict == "RE" %}
-                            <span style="color: #8b5cf6; font-weight: 600;">RE</span>
+                            <span style="color: #f97316; font-weight: 600;">RE</span>
                         {% else %}
                             <span style="color: #94a3b8; font-weight: 600;">{{ sub.verdict }}</span>
                         {% endif %}
