@@ -276,34 +276,79 @@ impl CodeRunner {
         let _ = fs::remove_file(&meta_file).await;
         self.cleanup().await?;
 
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
         // Determine verdict
         match status {
-            "RE" => {
+            "RE" | "SG" | "XX" => {
+                // Extract which test case failed from stderr
+                let mut test_case_info = String::new();
+                let mut test_num = 0;
+
+                for line in stderr.lines() {
+                    if line.starts_with("TESTCASE ") && line.contains(":") {
+                        if let Some(num_str) = line.strip_prefix("TESTCASE ").and_then(|s| s.split(':').next()) {
+                            if let Ok(n) = num_str.trim().parse::<usize>() {
+                                test_num = n;
+                                if let Some(input_desc) = line.split(':').nth(1) {
+                                    test_case_info = format!("Failed on test case {}\n\nInput: {}\n\n", test_num, input_desc.trim());
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // Get error message
+                let error_msg = stderr.lines()
+                    .filter(|line| !line.starts_with("TESTCASE "))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+                    .trim()
+                    .to_string();
+
+                let output = if !test_case_info.is_empty() {
+                    format!("{}Error:\n{}", test_case_info, error_msg)
+                } else {
+                    error_msg
+                };
+
                 return Ok(RunResult {
                     verdict: Verdict::RE,
                     time_ms,
-                    output: String::from_utf8_lossy(&output.stderr).to_string(),
+                    output: if output.is_empty() { "Runtime error".to_string() } else { output },
                 });
             }
             "TO" => {
+                // Extract which test case timed out
+                let mut test_num = 0;
+
+                for line in stderr.lines() {
+                    if line.starts_with("TESTCASE ") && line.contains(":") {
+                        if let Some(num_str) = line.strip_prefix("TESTCASE ").and_then(|s| s.split(':').next()) {
+                            if let Ok(n) = num_str.trim().parse::<usize>() {
+                                test_num = n;
+                            }
+                        }
+                    }
+                }
+
+                let output = if test_num > 0 {
+                    format!("Time limit exceeded on test case {}", test_num)
+                } else {
+                    "Time limit exceeded".to_string()
+                };
+
                 return Ok(RunResult {
                     verdict: Verdict::TLE,
                     time_ms,
-                    output: "Time limit exceeded".to_string(),
-                });
-            }
-            "SG" | "XX" => {
-                return Ok(RunResult {
-                    verdict: Verdict::RE,
-                    time_ms,
-                    output: String::from_utf8_lossy(&output.stderr).to_string(),
+                    output,
                 });
             }
             _ => {}
         };
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
         // Check if output matches expected
         let actual = stdout.trim();
