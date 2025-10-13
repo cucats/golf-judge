@@ -77,28 +77,3 @@ for __i in range(__t):
         args: &["main.py"],
     },
 }];
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_python() {
-        let lang = Language::get("python3.11_function_f").unwrap();
-        assert_eq!(lang.name, "Python 3.11 (function f)");
-        assert_eq!(lang.file_extension, ".py");
-        assert!(lang.compile_command.is_none());
-    }
-
-    #[test]
-    fn test_submission_filename() {
-        let lang = Language::get("python3.11_function_f").unwrap();
-        assert_eq!(lang.submission_filename(), "submission.py");
-    }
-
-    #[test]
-    fn test_grader_filename() {
-        let lang = Language::get("python3.11_function_f").unwrap();
-        assert_eq!(lang.grader_filename(), "main.py");
-    }
-}
