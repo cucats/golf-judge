@@ -20,7 +20,7 @@ use tower_http::services::ServeDir;
 async fn main() {
     // Generate admin token
     let admin_token = generate_token();
-    println!("Admin URL: http://127.0.0.1:3000/auth/{admin_token}");
+    println!("Admin: /auth/{admin_token}");
 
     // Connect to database
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
