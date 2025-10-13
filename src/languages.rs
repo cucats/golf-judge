@@ -57,7 +57,7 @@ static LANGUAGES: &[Language] = &[Language {
     file_extension: ".py",
     compile_command: None,
     run_command: RunCommand {
-        program: "/usr/sbin/python3",
+        program: "/usr/bin/python3",
         args: &["main.py"],
     },
 }];
