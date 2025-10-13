@@ -11,9 +11,9 @@ pub struct User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Problem {
-    pub id: String,  // Filesystem identifier like "0", "1", "2"
+    pub id: String, // Filesystem identifier like "0", "1", "2"
     pub title: String,
-    pub statement: String,  // Markdown content
+    pub statement: String, // Markdown content
     pub test_input: String,
     pub test_output: String,
 }
@@ -31,7 +31,7 @@ pub struct Contest {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct ContestProblem {
     pub contest_id: i32,
-    pub problem_id: String,  // Filesystem identifier
+    pub problem_id: String, // Filesystem identifier
     pub problem_order: i32,
 }
 
@@ -40,7 +40,7 @@ pub struct Submission {
     pub id: String,
     pub username: String,
     pub contest_id: i32,
-    pub problem_id: String,  // Filesystem identifier
+    pub problem_id: String, // Filesystem identifier
     pub verdict: String,
     pub code_length: i32,
     pub time: i32,
@@ -52,7 +52,7 @@ pub struct Submission {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProblemWithStatement {
-    pub id: String,  // Filesystem identifier
+    pub id: String, // Filesystem identifier
     pub title: String,
     pub statement: String, // Rendered markdown
     pub order: i32,

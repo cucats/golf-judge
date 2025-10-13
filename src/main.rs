@@ -7,7 +7,10 @@ mod runner;
 mod session;
 mod state;
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use sqlx::postgres::PgPoolOptions;
 use state::AppState;
 use std::env;
@@ -20,7 +23,7 @@ async fn main() {
 
     // Generate admin token
     let admin_token = generate_token();
-    println!("Admin URL: http://127.0.0.1:3000/auth/{}", admin_token);
+    println!("Admin URL: http://127.0.0.1:3000/auth/{admin_token}");
 
     // Connect to database
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -55,21 +58,42 @@ async fn main() {
         .route("/login", get(routes::login_page).post(routes::login_post))
         .route("/auth/{token}", get(routes::admin_auth))
         .route("/admin", get(routes::admin_dashboard))
-        .route("/admin/contests/new", get(routes::admin_create_contest_page))
+        .route(
+            "/admin/contests/new",
+            get(routes::admin_create_contest_page),
+        )
         .route("/admin/contests", post(routes::admin_create_contest))
         .route("/admin/contests/{id}", get(routes::admin_manage_contest))
-        .route("/admin/contests/{id}/start", post(routes::admin_start_contest))
+        .route(
+            "/admin/contests/{id}/start",
+            post(routes::admin_start_contest),
+        )
         .route("/admin/contests/{id}/end", post(routes::admin_end_contest))
-        .route("/admin/contests/{id}/submissions", get(routes::admin_submissions))
+        .route(
+            "/admin/contests/{id}/submissions",
+            get(routes::admin_submissions),
+        )
         .route("/contest/{id}/join", get(routes::contest_join))
         .route("/contest/{id}/waiting", get(routes::contest_waiting))
         .route("/contest/{id}/problems", get(routes::contest_problems))
         .route("/contest/{id}/problems/{pid}", get(routes::contest_problem))
-        .route("/contest/{id}/problems/{pid}/submit", post(routes::contest_submit))
-        .route("/contest/{id}/leaderboard", get(routes::contest_leaderboard))
+        .route(
+            "/contest/{id}/problems/{pid}/submit",
+            post(routes::contest_submit),
+        )
+        .route(
+            "/contest/{id}/leaderboard",
+            get(routes::contest_leaderboard),
+        )
         // API routes for JSON data
-        .route("/api/contest/{id}/leaderboard", get(routes::api_contest_leaderboard))
-        .route("/api/admin/contests/{id}/submissions", get(routes::api_admin_submissions))
+        .route(
+            "/api/contest/{id}/leaderboard",
+            get(routes::api_contest_leaderboard),
+        )
+        .route(
+            "/api/admin/contests/{id}/submissions",
+            get(routes::api_admin_submissions),
+        )
         .nest_service("/static", ServeDir::new("static"))
         .layer(session::session_layer())
         .with_state(state);

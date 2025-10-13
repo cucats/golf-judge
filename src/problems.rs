@@ -40,10 +40,11 @@ fn extract_and_remove_title(markdown: &str) -> (String, String) {
 
     for (i, line) in lines.iter().enumerate() {
         let trimmed = line.trim();
-        if trimmed.starts_with("# ") {
-            let title = trimmed[2..].trim().to_string();
+        if let Some(stripped) = trimmed.strip_prefix("# ") {
+            let title = stripped.trim().to_string();
             // Remove the title line and rejoin the rest
-            let remaining_lines: Vec<&str> = lines.iter()
+            let remaining_lines: Vec<&str> = lines
+                .iter()
                 .enumerate()
                 .filter_map(|(idx, &l)| if idx != i { Some(l) } else { None })
                 .collect();

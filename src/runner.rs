@@ -3,6 +3,7 @@ use tokio::fs;
 use tokio::process::Command;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Verdict {
     AC,  // Accepted
     WA,  // Wrong Answer
@@ -46,10 +47,10 @@ impl CodeRunner {
     /// Initialize the isolate sandbox
     pub async fn init(&self) -> Result<PathBuf, String> {
         let output = Command::new("isolate")
-            .args(&["--box-id", &self.box_id.to_string(), "--init"])
+            .args(["--box-id", &self.box_id.to_string(), "--init"])
             .output()
             .await
-            .map_err(|e| format!("Failed to init isolate: {}", e))?;
+            .map_err(|e| format!("Failed to init isolate: {e}"))?;
 
         if !output.status.success() {
             return Err(format!(
@@ -65,10 +66,10 @@ impl CodeRunner {
     /// Clean up the isolate sandbox
     pub async fn cleanup(&self) -> Result<(), String> {
         let output = Command::new("isolate")
-            .args(&["--box-id", &self.box_id.to_string(), "--cleanup"])
+            .args(["--box-id", &self.box_id.to_string(), "--cleanup"])
             .output()
             .await
-            .map_err(|e| format!("Failed to cleanup isolate: {}", e))?;
+            .map_err(|e| format!("Failed to cleanup isolate: {e}"))?;
 
         if !output.status.success() {
             return Err(format!(
@@ -96,20 +97,20 @@ impl CodeRunner {
         let code_path = box_path.join(code_file);
         fs::write(&code_path, stdin)
             .await
-            .map_err(|e| format!("Failed to write stdin: {}", e))?;
+            .map_err(|e| format!("Failed to write stdin: {e}"))?;
 
         // Prepare meta file for isolate output
         let meta_file = format!("/tmp/isolate-meta-{}.txt", self.box_id);
 
         // Run isolate
         let output = Command::new("isolate")
-            .args(&[
+            .args([
                 "--box-id",
                 &self.box_id.to_string(),
                 "--wall-time",
                 &format!("{:.1}", time_limit_secs * 2.0), // Wall time 2x CPU time
                 "--time",
-                &format!("{:.1}", time_limit_secs),
+                &format!("{time_limit_secs:.1}"),
                 "--mem",
                 &mem_limit_kb.to_string(),
                 "--processes",
@@ -124,7 +125,7 @@ impl CodeRunner {
             ])
             .output()
             .await
-            .map_err(|e| format!("Failed to run isolate: {}", e))?;
+            .map_err(|e| format!("Failed to run isolate: {e}"))?;
 
         // Read meta file
         let meta = fs::read_to_string(&meta_file).await.unwrap_or_default();
@@ -172,6 +173,7 @@ impl CodeRunner {
     }
 
     /// Run submission against test cases with custom grader
+    #[allow(clippy::too_many_arguments)]
     pub async fn judge(
         &self,
         code: &str,
@@ -184,7 +186,7 @@ impl CodeRunner {
     ) -> Result<RunResult, String> {
         // Get language definition
         let language = crate::languages::Language::get(language_id)
-            .ok_or_else(|| format!("Unknown language: {}", language_id))?;
+            .ok_or_else(|| format!("Unknown language: {language_id}"))?;
 
         // Initialize sandbox
         let box_path = self.init().await?;
@@ -193,13 +195,13 @@ impl CodeRunner {
         let submission_path = box_path.join(language.submission_filename());
         fs::write(&submission_path, code)
             .await
-            .map_err(|e| format!("Failed to write submission: {}", e))?;
+            .map_err(|e| format!("Failed to write submission: {e}"))?;
 
         // Write grader to sandbox
         let grader_path = box_path.join(language.grader_filename());
         fs::write(&grader_path, custom_grader)
             .await
-            .map_err(|e| format!("Failed to write grader: {}", e))?;
+            .map_err(|e| format!("Failed to write grader: {e}"))?;
 
         // Use provided test input/output
         let input = test_input;
@@ -211,13 +213,13 @@ impl CodeRunner {
         // Build isolate command with language-specific run command
         use tokio::io::AsyncWriteExt;
         let mut cmd = Command::new("isolate");
-        cmd.args(&[
+        cmd.args([
             "--box-id",
             &self.box_id.to_string(),
             "--wall-time",
             &format!("{:.1}", time_limit_secs * 2.0),
             "--time",
-            &format!("{:.1}", time_limit_secs),
+            &format!("{time_limit_secs:.1}"),
             "--mem",
             &mem_limit_kb.to_string(),
             "--processes",
@@ -239,14 +241,14 @@ impl CodeRunner {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| format!("Failed to spawn isolate: {}", e))?;
+            .map_err(|e| format!("Failed to spawn isolate: {e}"))?;
 
         // Write input to stdin
         if let Some(mut stdin) = child.stdin.take() {
             stdin
                 .write_all(input.as_bytes())
                 .await
-                .map_err(|e| format!("Failed to write stdin: {}", e))?;
+                .map_err(|e| format!("Failed to write stdin: {e}"))?;
             drop(stdin); // Close stdin
         }
 
@@ -254,7 +256,7 @@ impl CodeRunner {
         let output = child
             .wait_with_output()
             .await
-            .map_err(|e| format!("Failed to wait for isolate: {}", e))?;
+            .map_err(|e| format!("Failed to wait for isolate: {e}"))?;
 
         // Read meta file
         let meta = fs::read_to_string(&meta_file).await.unwrap_or_default();
@@ -310,7 +312,7 @@ impl CodeRunner {
                     .to_string();
 
                 let output = if !test_case_info.is_empty() {
-                    format!("{}Error:\n{}", test_case_info, error_msg)
+                    format!("{test_case_info}Error:\n{error_msg}")
                 } else {
                     error_msg
                 };
@@ -337,7 +339,7 @@ impl CodeRunner {
                 }
 
                 let output = if test_num > 0 {
-                    format!("Time limit exceeded on test case {}", test_num)
+                    format!("Time limit exceeded on test case {test_num}")
                 } else {
                     "Time limit exceeded".to_string()
                 };
@@ -381,8 +383,8 @@ impl CodeRunner {
                 }
             }
 
-            if failed_test_num == 0 {
-                if actual_lines.len() != expected_lines.len() {
+            if failed_test_num == 0
+                && actual_lines.len() != expected_lines.len() {
                     if actual_lines.len() < expected_lines.len() {
                         failed_test_num = actual_lines.len() + 1;
                         expected_value = expected_lines.get(actual_lines.len()).unwrap_or(&"").to_string();
@@ -393,12 +395,11 @@ impl CodeRunner {
                         actual_value = actual_lines.get(expected_lines.len()).unwrap_or(&"").to_string();
                     }
                 }
-            }
 
             // Extract input info from stderr for the failed test case
             let mut input_info = String::new();
             if !stderr.is_empty() && failed_test_num > 0 {
-                let marker = format!("TESTCASE {}:", failed_test_num);
+                let marker = format!("TESTCASE {failed_test_num}:");
                 for line in stderr.lines() {
                     if line.starts_with(&marker) {
                         if let Some(input_desc) = line.strip_prefix(&marker) {
@@ -413,14 +414,10 @@ impl CodeRunner {
                 verdict: Verdict::WA,
                 time_ms,
                 output: format!(
-                    "Failed on test case {}
+                    "Failed on test case {failed_test_num}
 
-{}Expected: {}
-Got: {}",
-                    failed_test_num,
-                    input_info,
-                    expected_value,
-                    actual_value
+{input_info}Expected: {expected_value}
+Got: {actual_value}"
                 ),
             })
         }

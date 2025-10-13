@@ -36,7 +36,7 @@ impl Language {
     /// Get all available languages
     #[allow(dead_code)]
     pub fn all() -> &'static [Language] {
-        &LANGUAGES
+        LANGUAGES
     }
 
     /// Get the filename for user submission

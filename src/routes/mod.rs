@@ -14,6 +14,13 @@ use crate::{
     session, state::AppState,
 };
 
+// Type aliases for complex types
+type SubmissionRawTuple = (String, String, String, String, i32, i32, String, i64);
+type UserDataMap = std::collections::HashMap<
+    String,
+    (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
+>;
+
 #[derive(Template)]
 #[template(path = "index.html")]
 struct IndexTemplate {
@@ -436,7 +443,7 @@ pub async fn admin_submissions(
     query_str.push_str(" ORDER BY s.created_at DESC");
 
     // Execute query with appropriate bindings
-    let submissions_raw: Vec<(String, String, String, String, i32, i32, String, i64)> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
+    let submissions_raw: Vec<SubmissionRawTuple> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
         sqlx::query_as(&query_str)
             .bind(contest_id)
             .bind(&filter_username)
@@ -511,13 +518,13 @@ pub async fn contest_join(
 
     // If contest has ended, anyone can view leaderboard without login
     if contest.status == "ended" {
-        return Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response();
+        return Redirect::to(&format!("/contest/{contest_id}/leaderboard")).into_response();
     }
 
     // For pending or active contests, require login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{}/join", contest_id)).into_response(),
+        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/join")).into_response(),
     };
 
     // Record participation (idempotent)
@@ -533,9 +540,9 @@ pub async fn contest_join(
 
     // Redirect based on contest status
     if contest.status == "pending" {
-        Redirect::to(&format!("/contest/{}/waiting", contest_id)).into_response()
+        Redirect::to(&format!("/contest/{contest_id}/waiting")).into_response()
     } else {
-        Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response()
+        Redirect::to(&format!("/contest/{contest_id}/problems")).into_response()
     }
 }
 
@@ -555,7 +562,7 @@ pub async fn contest_waiting(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{}/waiting", contest_id)).into_response(),
+        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/waiting")).into_response(),
     };
 
     // Get contest
@@ -566,7 +573,7 @@ pub async fn contest_waiting(
 
     // If contest is active, redirect to problems
     if contest.status == "active" {
-        return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response();
+        return Redirect::to(&format!("/contest/{contest_id}/problems")).into_response();
     }
 
     // Get problem count
@@ -611,7 +618,7 @@ pub async fn contest_problems(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{}/problems", contest_id)).into_response(),
+        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/problems")).into_response(),
     };
 
     // Get contest
@@ -622,9 +629,9 @@ pub async fn contest_problems(
 
     // If contest is not active, redirect appropriately
     if contest.status == "pending" {
-        return Redirect::to(&format!("/contest/{}/waiting", contest_id)).into_response();
+        return Redirect::to(&format!("/contest/{contest_id}/waiting")).into_response();
     } else if contest.status == "ended" {
-        return Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response();
+        return Redirect::to(&format!("/contest/{contest_id}/leaderboard")).into_response();
     }
 
     // Get problem IDs and orders from contest_problems
@@ -699,7 +706,7 @@ pub async fn contest_problem(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{}/problems/{}", contest_id, problem_id)).into_response(),
+        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/problems/{problem_id}")).into_response(),
     };
 
     // Get contest
@@ -710,13 +717,13 @@ pub async fn contest_problem(
 
     // If contest not active, redirect
     if contest.status != "active" {
-        return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response();
+        return Redirect::to(&format!("/contest/{contest_id}/problems")).into_response();
     }
 
     // Load problem from filesystem
     let problem = match crate::problems::load_problem(&problem_id) {
         Ok(p) => p,
-        Err(_) => return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response(),
+        Err(_) => return Redirect::to(&format!("/contest/{contest_id}/problems")).into_response(),
     };
 
     // Render markdown statement with sanitization
@@ -800,7 +807,7 @@ pub async fn contest_submit(
         }).into_response();
     }
 
-    let code_length = code.as_bytes().len() as i32;
+    let code_length = code.len() as i32;
 
     // Load problem from filesystem
     let problem = match crate::problems::load_problem(&problem_id) {
@@ -860,7 +867,7 @@ pub async fn contest_submit(
                 verdict: "ERROR".to_string(),
                 code_length,
                 time: 0,
-                output: format!("Judge error: {}", e),
+                output: format!("Judge error: {e}"),
             }).into_response();
         }
     };
@@ -1044,10 +1051,7 @@ pub async fn contest_leaderboard(
     .unwrap_or_default();
 
     // Build user data with medals
-    let mut user_data: std::collections::HashMap<
-        String,
-        (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
-    > = std::collections::HashMap::new();
+    let mut user_data: UserDataMap = std::collections::HashMap::new();
 
     // Initialize all participants with zero scores
     for username in participants {
@@ -1208,10 +1212,7 @@ pub async fn api_contest_leaderboard(
     .unwrap_or_default();
 
     // Build user data with medals
-    let mut user_data: std::collections::HashMap<
-        String,
-        (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
-    > = std::collections::HashMap::new();
+    let mut user_data: UserDataMap = std::collections::HashMap::new();
 
     // Initialize all participants with zero scores
     for username in participants {
@@ -1316,7 +1317,7 @@ pub async fn api_admin_submissions(
     query_str.push_str(" ORDER BY s.created_at DESC");
 
     // Execute query with appropriate bindings
-    let submissions_raw: Vec<(String, String, String, String, i32, i32, String, i64)> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
+    let submissions_raw: Vec<SubmissionRawTuple> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
         sqlx::query_as(&query_str)
             .bind(contest_id)
             .bind(&filter_username)
