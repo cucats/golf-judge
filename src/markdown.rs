@@ -11,14 +11,12 @@ pub fn render_markdown(markdown: &str) -> String {
 
     // Sanitize HTML with ammonia
     // Allow safe tags and preserve math delimiters
-    let sanitized = Builder::default()
+    Builder::default()
         .add_tags(&["span", "div"]) // For math blocks
         .add_tag_attributes("span", &["class"]) // For inline math styling
         .add_tag_attributes("div", &["class"]) // For display math styling
         .clean(&html_output)
-        .to_string();
-
-    sanitized
+        .to_string()
 }
 
 #[cfg(test)]
