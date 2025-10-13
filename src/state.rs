@@ -23,6 +23,7 @@ impl AppState {
             .await
     }
 
+    #[allow(dead_code)]
     pub fn is_contest_active(&self, contest: &Contest) -> bool {
         contest.status == "active" && !self.is_contest_ended(contest)
     }

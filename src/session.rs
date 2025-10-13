@@ -23,6 +23,7 @@ pub async fn set_user(session: &Session, username: String, is_admin: bool) -> Re
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn clear_user(session: &Session) -> Result<(), tower_sessions::session::Error> {
     session.remove::<String>("username").await?;
     session.remove::<bool>("is_admin").await?;

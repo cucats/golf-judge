@@ -30,7 +30,15 @@
             const seconds = remaining % 60;
             document.getElementById('timer').textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
             if (remaining === 0) {
-                location.reload();
+                // Replace submit button with "Contest has ended" message
+                const submitBtn = document.getElementById('submit-btn');
+                if (submitBtn) {
+                    submitBtn.replaceWith(document.createRange().createContextualFragment(
+                        '<div style="color: #ef4444; font-weight: 700;">Contest has ended</div>'
+                    ));
+                }
+                // Change timer color to red
+                document.getElementById('timer').style.color = '#ef4444';
             }
         }
     }, 1000);

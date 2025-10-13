@@ -67,6 +67,9 @@ async fn main() {
         .route("/contest/{id}/problems/{pid}", get(routes::contest_problem))
         .route("/contest/{id}/problems/{pid}/submit", post(routes::contest_submit))
         .route("/contest/{id}/leaderboard", get(routes::contest_leaderboard))
+        // API routes for JSON data
+        .route("/api/contest/{id}/leaderboard", get(routes::api_contest_leaderboard))
+        .route("/api/admin/contests/{id}/submissions", get(routes::api_admin_submissions))
         .nest_service("/static", ServeDir::new("static"))
         .layer(session::session_layer())
         .with_state(state);

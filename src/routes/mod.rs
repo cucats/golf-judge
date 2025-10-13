@@ -10,7 +10,7 @@ use tower_sessions::Session;
 
 use crate::{
     models::{Contest, Problem},
-    runner::{CodeRunner, get_free_box_id, Verdict},
+    runner::{CodeRunner, get_free_box_id},
     session, state::AppState,
 };
 
@@ -177,7 +177,7 @@ struct CreateContestTemplate {
 }
 
 pub async fn admin_create_contest_page(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     session: Session,
 ) -> impl IntoResponse {
     // Check admin
@@ -433,7 +433,7 @@ pub async fn admin_submissions(
         }
     }
 
-    query_str.push_str(" ORDER BY s.created_at DESC LIMIT 100");
+    query_str.push_str(" ORDER BY s.created_at DESC");
 
     // Execute query with appropriate bindings
     let submissions_raw: Vec<(String, String, String, String, i32, i32, String, i64)> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
@@ -1108,10 +1108,11 @@ pub async fn contest_leaderboard(
         })
         .collect();
 
-    // Sort by problems solved (descending), then by total bytes (ascending)
+    // Sort by problems solved (descending), then by total bytes (ascending), then by username (ascending)
     entries.sort_by(|a, b| {
         b.problems_solved.cmp(&a.problems_solved)
             .then(a.total_bytes.cmp(&b.total_bytes))
+            .then(a.username.cmp(&b.username))
     });
 
     let template = LeaderboardTemplate {
@@ -1121,4 +1122,250 @@ pub async fn contest_leaderboard(
         problem_ids,
     };
     Html(template.render().unwrap()).into_response()
+}
+
+// API endpoints for JSON data
+
+#[derive(serde::Serialize)]
+struct LeaderboardApiResponse {
+    entries: Vec<LeaderboardEntry>,
+    problem_ids: Vec<String>,
+}
+
+pub async fn api_contest_leaderboard(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    // Get problem IDs for this contest
+    let problem_ids: Vec<String> = sqlx::query_scalar(
+        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    // For each problem, find the best (shortest) accepted solution and count how many have it
+    let mut best_solutions: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    let mut best_solution_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+
+    for pid in &problem_ids {
+        let best: Option<i32> = sqlx::query_scalar(
+            "SELECT MIN(code_length) FROM submissions
+             WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'"
+        )
+        .bind(contest_id)
+        .bind(pid)
+        .fetch_optional(&state.db)
+        .await
+        .ok()
+        .flatten();
+
+        if let Some(best_len) = best {
+            best_solutions.insert(pid.clone(), best_len);
+
+            let count: i64 = sqlx::query_scalar(
+                r#"SELECT COUNT(DISTINCT username) FROM (
+                    SELECT DISTINCT ON (username) username, code_length
+                    FROM submissions
+                    WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'
+                    ORDER BY username, code_length ASC, created_at ASC
+                ) AS best_per_user WHERE code_length = $3"#
+            )
+            .bind(contest_id)
+            .bind(pid)
+            .bind(best_len)
+            .fetch_one(&state.db)
+            .await
+            .unwrap_or(0);
+
+            best_solution_counts.insert(pid.clone(), count as i32);
+        }
+    }
+
+    // Get all participants for this contest
+    let participants: Vec<String> = sqlx::query_scalar(
+        "SELECT username FROM contest_participants WHERE contest_id = $1"
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    // Get all users' best submissions for each problem
+    let user_scores: Vec<ProblemScore> = sqlx::query_as::<_, ProblemScore>(
+        r#"
+        SELECT DISTINCT ON (problem_id, username)
+               problem_id, username, code_length
+        FROM submissions
+        WHERE contest_id = $1 AND verdict = 'AC'
+        ORDER BY problem_id, username, code_length ASC, created_at ASC
+        "#
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    // Build user data with medals
+    let mut user_data: std::collections::HashMap<
+        String,
+        (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
+    > = std::collections::HashMap::new();
+
+    // Initialize all participants with zero scores
+    for username in participants {
+        user_data.entry(username).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+    }
+
+    for score in user_scores {
+        let entry = user_data.entry(score.username.clone()).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+
+        // Determine medal type
+        let (points, medal) = if let Some(&best_len) = best_solutions.get(&score.problem_id) {
+            if score.code_length == best_len {
+                let count = best_solution_counts.get(&score.problem_id).copied().unwrap_or(0);
+                if count == 1 {
+                    entry.3 += 1;
+                    (10000, "diamond".to_string())
+                } else {
+                    entry.4 += 1;
+                    (10000, "gold".to_string())
+                }
+            } else {
+                ((10000 * best_len / score.code_length).max(1), "none".to_string())
+            }
+        } else {
+            (0, "none".to_string())
+        };
+
+        entry.0 += points;
+        entry.1 += 1;
+        entry.2 += score.code_length as i64;
+        entry.5.insert(score.problem_id.clone(), UserProblemResult {
+            code_length: score.code_length,
+            medal,
+        });
+    }
+
+    // Convert to sorted entries
+    let mut entries: Vec<LeaderboardEntry> = user_data
+        .into_iter()
+        .map(|(username, (score, solved, bytes, diamonds, golds, results_map))| {
+            let problem_results: Vec<Option<UserProblemResult>> = problem_ids
+                .iter()
+                .map(|pid| results_map.get(pid).cloned())
+                .collect();
+
+            LeaderboardEntry {
+                username,
+                total_score: score,
+                problems_solved: solved,
+                total_bytes: bytes,
+                diamonds,
+                golds,
+                problem_results,
+            }
+        })
+        .collect();
+
+    entries.sort_by(|a, b| {
+        b.problems_solved.cmp(&a.problems_solved)
+            .then(a.total_bytes.cmp(&b.total_bytes))
+            .then(a.username.cmp(&b.username))
+    });
+
+    axum::Json(LeaderboardApiResponse {
+        entries,
+        problem_ids,
+    }).into_response()
+}
+
+pub async fn api_admin_submissions(
+    Path(contest_id): Path<i32>,
+    Query(query): Query<SubmissionsQuery>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(Vec::<SubmissionView>::new())).into_response();
+        }
+    } else {
+        return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(Vec::<SubmissionView>::new())).into_response();
+    }
+
+    let filter_username = query.username.clone().unwrap_or_default();
+    let filter_verdict = query.verdict.clone().unwrap_or_default();
+
+    // Build query with optional filters
+    let mut query_str = String::from("SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.code, s.created_at FROM submissions s WHERE s.contest_id = $1");
+
+    if !filter_username.is_empty() {
+        query_str.push_str(" AND s.username = $2");
+    }
+    if !filter_verdict.is_empty() {
+        if filter_username.is_empty() {
+            query_str.push_str(" AND s.verdict = $2");
+        } else {
+            query_str.push_str(" AND s.verdict = $3");
+        }
+    }
+
+    query_str.push_str(" ORDER BY s.created_at DESC");
+
+    // Execute query with appropriate bindings
+    let submissions_raw: Vec<(String, String, String, String, i32, i32, String, i64)> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .bind(&filter_username)
+            .bind(&filter_verdict)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    } else if !filter_username.is_empty() {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .bind(&filter_username)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    } else if !filter_verdict.is_empty() {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .bind(&filter_verdict)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    } else {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    };
+
+    // Load problem titles from filesystem
+    let mut submissions = Vec::new();
+    for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw {
+        let problem_title = crate::problems::load_problem(&problem_id)
+            .ok()
+            .map(|p| p.title)
+            .unwrap_or_else(|| problem_id.clone());
+
+        submissions.push(SubmissionView {
+            id,
+            username,
+            problem_id,
+            problem_title,
+            verdict,
+            code_length,
+            time,
+            code,
+            created_at,
+        });
+    }
+
+    axum::Json(submissions).into_response()
 }

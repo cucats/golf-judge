@@ -87,4 +87,72 @@
         </ul>
     </div>
 </div>
+
+<script>
+// Helper to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Auto-refresh every 1 second by fetching JSON data
+async function refreshLeaderboard() {
+    try {
+        const url = window.location.pathname;
+        const apiUrl = url.replace('/contest/', '/api/contest/');
+        const response = await fetch(apiUrl);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const tbody = document.querySelector('tbody');
+
+        // Build new tbody HTML
+        let html = '';
+        data.entries.forEach((entry, idx) => {
+            html += `<tr style="border-top: 1px solid #334155;">
+                <td style="padding: 12px 8px; color: #94a3b8;">${idx + 1}</td>
+                <td style="padding: 12px 8px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${escapeHtml(entry.username)}
+                </td>
+                <td style="padding: 12px 8px; text-align: center; color: #94a3b8;">
+                    ${entry.problems_solved}
+                </td>
+                <td style="padding: 12px 8px; text-align: right; color: #fbbf24; font-weight: 600;">
+                    ${entry.total_bytes}
+                </td>`;
+
+            entry.problem_results.forEach(result => {
+                if (result) {
+                    if (result.medal === 'diamond') {
+                        html += `<td style="padding: 12px 8px; text-align: center; font-size: 0.875rem; white-space: nowrap;">
+                            <span style="color: #60a5fa; font-weight: 700;" title="${result.code_length} bytes (unique best!)">💎 ${result.code_length}</span>
+                        </td>`;
+                    } else if (result.medal === 'gold') {
+                        html += `<td style="padding: 12px 8px; text-align: center; font-size: 0.875rem; white-space: nowrap;">
+                            <span style="color: #fbbf24; font-weight: 700;" title="${result.code_length} bytes (tied best)">🥇 ${result.code_length}</span>
+                        </td>`;
+                    } else {
+                        html += `<td style="padding: 12px 8px; text-align: center; font-size: 0.875rem; white-space: nowrap;">
+                            <span style="color: #94a3b8;" title="${result.code_length} bytes">${result.code_length}</span>
+                        </td>`;
+                    }
+                } else {
+                    html += `<td style="padding: 12px 8px; text-align: center; font-size: 0.875rem; white-space: nowrap;">
+                        <span style="color: #374151;">-</span>
+                    </td>`;
+                }
+            });
+
+            html += '</tr>';
+        });
+
+        tbody.innerHTML = html;
+    } catch (err) {
+        console.error('Failed to refresh leaderboard:', err);
+    }
+}
+
+setInterval(refreshLeaderboard, 1000);
+</script>
 {% endblock %}

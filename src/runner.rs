@@ -81,6 +81,7 @@ impl CodeRunner {
     }
 
     /// Run code with given stdin and collect stdout
+    #[allow(dead_code)]
     pub async fn run(
         &self,
         code_file: &str,
@@ -283,6 +284,7 @@ impl CodeRunner {
             "RE" | "SG" | "XX" => {
                 // Extract which test case failed from stderr
                 let mut test_case_info = String::new();
+                #[allow(unused_assignments)]
                 let mut test_num = 0;
 
                 for line in stderr.lines() {
@@ -321,6 +323,7 @@ impl CodeRunner {
             }
             "TO" => {
                 // Extract which test case timed out
+                #[allow(unused_assignments)]
                 let mut test_num = 0;
 
                 for line in stderr.lines() {
