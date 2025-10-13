@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - CUCaTS Code Golf{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div>
+        <strong>Admin Panel</strong>
+    </div>
+    <div>
+        <a href="/">Home</a>
+        <a href="/admin/contests/new">Create Contest</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Admin Dashboard</h1>
+
+    <h2>All Contests</h2>
+
+    {% if contests.is_empty() %}
+        <div class="card">
+            <p>No contests yet. <a href="/admin/contests/new">Create one</a></p>
+        </div>
+    {% else %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th>Problems</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contest in contests %}
+                    <tr>
+                        <td>{{ contest.name }}</td>
+                        <td><span class="badge {{ contest.status }}">{{ contest.status }}</span></td>
+                        <td>{{ contest.duration / 60 }} min</td>
+                        <td>{{ contest.problem_count }}</td>
+                        <td>
+                            <a href="/admin/contests/{{ contest.id }}">Manage</a>
+                            {% if contest.status == "pending" %}
+                                <form method="POST" action="/admin/contests/{{ contest.id }}/start" style="display: inline;">
+                                    <button type="submit" class="success">Start</button>
+                                </form>
+                            {% endif %}
+                            {% if contest.status == "active" %}
+                                <form method="POST" action="/admin/contests/{{ contest.id }}/end" style="display: inline;">
+                                    <button type="submit" class="danger">End</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

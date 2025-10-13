@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Waiting Room - {{ contest.name }}{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div>
+        <strong>{{ contest.name }}</strong>
+    </div>
+    <div>
+        <span>Welcome, {{ username }}</span>
+    </div>
+</div>
+
+<div class="flex flex-col items-center justify-center" style="min-height: 80vh;">
+    <h1>Waiting Room</h1>
+
+    <div class="card" style="text-align: center; max-width: 600px;">
+        {% if contest.status == "pending" %}
+            <h2>Contest Not Started</h2>
+            <p>The contest will begin soon. Please wait for the admin to start it.</p>
+            <p style="margin-top: 20px;">
+                <strong>Duration:</strong> {{ contest.duration / 60 }} minutes<br>
+                <strong>Problems:</strong> {{ problem_count }}
+            </p>
+            <script>
+                // Auto-refresh every 5 seconds to check if contest started
+                setTimeout(() => location.reload(), 5000);
+            </script>
+        {% else if contest.status == "active" %}
+            <h2>Contest Started!</h2>
+            <p>The contest is now active. Good luck!</p>
+            <a href="/contest/{{ contest.id }}/problems">
+                <button style="margin-top: 20px;">Enter Contest</button>
+            </a>
+        {% else %}
+            <h2>Contest Ended</h2>
+            <p>This contest has already ended.</p>
+            <a href="/contest/{{ contest.id }}/leaderboard">
+                <button style="margin-top: 20px;">View Leaderboard</button>
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

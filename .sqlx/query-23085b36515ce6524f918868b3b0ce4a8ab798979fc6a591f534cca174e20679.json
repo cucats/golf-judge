@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO users (username, is_admin, created_at) VALUES ($1, FALSE, $2) ON CONFLICT (username) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "23085b36515ce6524f918868b3b0ce4a8ab798979fc6a591f534cca174e20679"
+}

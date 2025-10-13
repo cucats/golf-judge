@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Submissions - {{ contest.name }}{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; max-width: 1400px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1 style="font-size: 1.875rem;">{{ contest.name }} - Submissions</h1>
+        <a href="/admin/contests/{{ contest.id }}" style="color: #60a5fa; text-decoration: none;">
+            ← Back to Contest
+        </a>
+    </div>
+
+    <div style="background-color: #1e293b; border-radius: 8px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+            <thead>
+                <tr style="background-color: #0f172a;">
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600;">Time</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600;">Username</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600;">Problem</th>
+                    <th style="padding: 12px 16px; text-align: center; font-weight: 600;">Verdict</th>
+                    <th style="padding: 12px 16px; text-align: right; font-weight: 600;">Bytes</th>
+                    <th style="padding: 12px 16px; text-align: right; font-weight: 600;">Time (ms)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                <tr style="border-top: 1px solid #334155;">
+                    <td style="padding: 12px 16px; color: #94a3b8;">
+                        {{ sub.created_at }}
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        {{ sub.username }}
+                    </td>
+                    <td style="padding: 12px 16px; color: #94a3b8;">
+                        {{ sub.problem_title }}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                        {% if sub.verdict == "AC" %}
+                            <span style="color: #10b981; font-weight: 600;">AC</span>
+                        {% else if sub.verdict == "WA" %}
+                            <span style="color: #ef4444; font-weight: 600;">WA</span>
+                        {% else if sub.verdict == "TLE" %}
+                            <span style="color: #f59e0b; font-weight: 600;">TLE</span>
+                        {% else if sub.verdict == "RE" %}
+                            <span style="color: #8b5cf6; font-weight: 600;">RE</span>
+                        {% else %}
+                            <span style="color: #94a3b8; font-weight: 600;">{{ sub.verdict }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: right; color: #94a3b8;">
+                        {{ sub.code_length }}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: right; color: #94a3b8;">
+                        {{ sub.time }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 16px; color: #94a3b8; font-size: 0.875rem;">
+        Showing most recent 100 submissions
+    </div>
+</div>
+{% endblock %}
