@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Manage {{ contest.name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div>
+        <strong>Admin Panel</strong>
+    </div>
+    <div>
+        <a href="/admin">Dashboard</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1>{{ contest.name }}</h1>
+
+    <div class="card">
+        <p><strong>Status:</strong> <span class="badge {{ contest.status }}">{{ contest.status }}</span></p>
+        <p><strong>Duration:</strong> {{ contest.duration / 60 }} minutes</p>
+        {% if let Some(start) = contest.start_time %}
+            <p><strong>Started:</strong> {{ start }}</p>
+        {% endif %}
+    </div>
+
+    <h2>Problems</h2>
+    {% if problems.is_empty() %}
+        <div class="card">
+            <p>No problems in this contest.</p>
+        </div>
+    {% else %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Title</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for problem in problems %}
+                    <tr>
+                        <td>{{ problem.order + 1 }}</td>
+                        <td>{{ problem.title }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <h2>Submissions</h2>
+    <p><a href="/admin/contests/{{ contest.id }}/submissions">View all submissions</a></p>
+
+    <div style="margin-top: 20px;">
+        {% if contest.status == "pending" %}
+            <form method="POST" action="/admin/contests/{{ contest.id }}/start" style="display: inline;">
+                <button type="submit" class="success">Start Contest</button>
+            </form>
+        {% endif %}
+        {% if contest.status == "active" %}
+            <form method="POST" action="/admin/contests/{{ contest.id }}/end" style="display: inline;">
+                <button type="submit" class="danger">End Contest</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

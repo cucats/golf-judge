@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}CUCaTS Code Golf{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-screen">
+    <h1>CUCaTS Code Golf</h1>
+
+    <div class="w-full max-w-md">
+        {% if contests.is_empty() %}
+            <div class="card">
+                <p>No contests available yet. Check back later!</p>
+            </div>
+        {% else %}
+            <h2>Available Contests</h2>
+            {% for contest in contests %}
+                <div class="card">
+                    <h3>{{ contest.name }}</h3>
+                    <p>
+                        Duration: {{ contest.duration / 60 }} minutes
+                        <span class="badge {{ contest.status }}">{{ contest.status }}</span>
+                    </p>
+                    <a href="/login?next=/contest/{{ contest.id }}/join">
+                        <button>Join Contest</button>
+                    </a>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

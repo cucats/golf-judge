@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Ubuntu Mono', monospace;
+    background-color: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.gap-4 {
+    gap: 16px;
+}
+
+.min-h-screen {
+    min-height: 100vh;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.max-w-md {
+    max-width: 28rem;
+}
+
+h1 {
+    color: white;
+    margin-bottom: 40px;
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+input[type="text"],
+input[type="number"],
+textarea {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #e5e7eb;
+    font-size: 1rem;
+    font-family: 'Ubuntu Mono', monospace;
+    width: 100%;
+}
+
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: #60a5fa;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 200px;
+}
+
+button {
+    background-color: #60a5fa;
+    color: #0f172a;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+button:hover {
+    background-color: #93c5fd;
+}
+
+button.secondary {
+    background-color: #334155;
+    color: #e2e8f0;
+}
+
+button.secondary:hover {
+    background-color: #475569;
+}
+
+button.danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+button.danger:hover {
+    background-color: #dc2626;
+}
+
+button.success {
+    background-color: #10b981;
+    color: white;
+}
+
+button.success:hover {
+    background-color: #059669;
+}
+
+a {
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #334155;
+}
+
+.table th {
+    font-weight: 700;
+    background-color: #1e293b;
+}
+
+.table tr:hover {
+    background-color: #1e293b;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.badge.pending {
+    background-color: #fbbf24;
+    color: #0f172a;
+}
+
+.badge.active {
+    background-color: #10b981;
+    color: white;
+}
+
+.badge.ended {
+    background-color: #6b7280;
+    color: white;
+}
+
+.badge.ac {
+    background-color: #10b981;
+    color: white;
+}
+
+.badge.wa {
+    background-color: #ef4444;
+    color: white;
+}
+
+.nav {
+    background-color: #1e293b;
+    border-bottom: 1px solid #334155;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav a {
+    margin-right: 20px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+label {
+    font-weight: 700;
+    margin-bottom: 4px;
+}

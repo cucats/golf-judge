@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Problems - {{ contest.name }}{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div>
+        <strong>{{ contest.name }}</strong>
+    </div>
+    <div>
+        <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
+        <span>{{ username }}</span>
+        {% if let Some(remaining) = time_remaining %}
+            <span style="color: #fbbf24; font-weight: bold;">{{ remaining / 60 }}:{{ remaining % 60 }}</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container">
+    <h1>Problems</h1>
+
+    {% if problems.is_empty() %}
+        <div class="card">
+            <p>No problems in this contest.</p>
+        </div>
+    {% else %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for problem in problems %}
+                    <tr>
+                        <td>{{ problem.order + 1 }}</td>
+                        <td><a href="/contest/{{ contest.id }}/problems/{{ problem.id }}">{{ problem.title }}</a></td>
+                        <td>
+                            {% if let Some(verdict) = problem.verdict %}
+                                <span class="badge {{ verdict.to_lowercase() }}">{{ verdict }}</span>
+                            {% else %}
+                                <span>—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

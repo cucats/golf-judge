@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Create Contest - Admin{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div>
+        <strong>Admin Panel</strong>
+    </div>
+    <div>
+        <a href="/admin">Dashboard</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Create New Contest</h1>
+
+    <form method="POST" action="/admin/contests" class="card">
+        <div>
+            <label>Contest Name</label>
+            <input type="text" name="name" required placeholder="Division 1">
+        </div>
+
+        <div>
+            <label>Duration (minutes)</label>
+            <input type="number" name="duration" required value="60" min="1">
+        </div>
+
+        <div>
+            <label>Problems (select multiple)</label>
+            {% if problems.is_empty() %}
+                <p>No problems available. Create problems first.</p>
+            {% else %}
+                <div style="border: 1px solid #334155; border-radius: 6px; padding: 12px; max-height: 300px; overflow-y: auto;">
+                    {% for problem in problems %}
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="problems" value="{{ problem.id }}">
+                                <span>{{ problem.title }}</span>
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        {% if let Some(err) = error %}
+            <p style="color: #ef4444;">{{ err }}</p>
+        {% endif %}
+
+        <button type="submit">Create Contest</button>
+        <a href="/admin"><button type="button" class="secondary">Cancel</button></a>
+    </form>
+</div>
+{% endblock %}

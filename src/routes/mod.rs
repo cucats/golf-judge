@@ -1,0 +1,953 @@
+use askama::Template;
+use axum::{
+    extract::{Path, Query, State},
+    response::{Html, IntoResponse, Redirect},
+    Form,
+};
+use serde::Deserialize;
+use tower_sessions::Session;
+
+use crate::{
+    models::{Contest, Problem},
+    runner::{CodeRunner, get_free_box_id, Verdict},
+    session, state::AppState,
+};
+
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTemplate {
+    contests: Vec<Contest>,
+}
+
+pub async fn index(State(state): State<AppState>) -> impl IntoResponse {
+    let contests = sqlx::query_as::<_, Contest>("SELECT * FROM contests ORDER BY created_at DESC")
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default();
+
+    let template = IndexTemplate { contests };
+    Html(template.render().unwrap())
+}
+
+#[derive(Template)]
+#[template(path = "login.html")]
+struct LoginTemplate {
+    error: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct LoginQuery {
+    next: Option<String>,
+}
+
+pub async fn login_page(Query(query): Query<LoginQuery>, session: Session) -> impl IntoResponse {
+    // If already logged in, redirect to home
+    if session::get_user(&session).await.is_some() {
+        return Redirect::to("/").into_response();
+    }
+
+    // Store redirect destination in session
+    if let Some(next) = query.next {
+        let _ = session.insert("login_redirect", next).await;
+    }
+
+    let template = LoginTemplate { error: None };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct LoginForm {
+    username: String,
+}
+
+pub async fn login_post(
+    State(state): State<AppState>,
+    session: Session,
+    Form(form): Form<LoginForm>,
+) -> impl IntoResponse {
+    let username = form.username.trim();
+
+    if username.is_empty() {
+        let template = LoginTemplate {
+            error: Some("Username is required".to_string()),
+        };
+        return Html(template.render().unwrap()).into_response();
+    }
+
+    let now = chrono::Utc::now().timestamp();
+
+    // Insert or get existing user
+    let _ = sqlx::query(
+        "INSERT INTO users (username, is_admin, created_at) VALUES ($1, FALSE, $2) ON CONFLICT (username) DO NOTHING"
+    )
+    .bind(username)
+    .bind(now)
+    .execute(&state.db)
+    .await;
+
+    // Set session
+    let _ = session::set_user(&session, username.to_string(), false).await;
+
+    // Redirect to saved destination or home
+    let redirect = session
+        .get::<String>("login_redirect")
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "/".to_string());
+
+    let _ = session.remove::<String>("login_redirect").await;
+
+    Redirect::to(&redirect).into_response()
+}
+
+// Admin routes
+
+pub async fn admin_auth(
+    Path(token): Path<String>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    if token == state.admin_token {
+        let _ = session::set_user(&session, "admin".to_string(), true).await;
+        Redirect::to("/admin")
+    } else {
+        Redirect::to("/")
+    }
+}
+
+#[derive(serde::Serialize, sqlx::FromRow)]
+struct ContestWithCount {
+    id: i32,
+    name: String,
+    duration: i32,
+    start_time: Option<i64>,
+    status: String,
+    created_at: i64,
+    problem_count: i64,
+}
+
+#[derive(Template)]
+#[template(path = "admin/dashboard.html")]
+struct AdminDashboardTemplate {
+    contests: Vec<ContestWithCount>,
+}
+
+pub async fn admin_dashboard(State(state): State<AppState>, session: Session) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/").into_response();
+        }
+    } else {
+        return Redirect::to("/login").into_response();
+    }
+
+    // Get all contests with problem counts
+    let contests = sqlx::query_as::<_, ContestWithCount>(
+        r#"
+        SELECT c.id, c.name, c.duration, c.start_time, c.status, c.created_at,
+               COALESCE(COUNT(cp.problem_id), 0) as problem_count
+        FROM contests c
+        LEFT JOIN contest_problems cp ON c.id = cp.contest_id
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+        "#
+    )
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let template = AdminDashboardTemplate { contests };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(Template)]
+#[template(path = "admin/create_contest.html")]
+struct CreateContestTemplate {
+    problems: Vec<Problem>,
+    error: Option<String>,
+}
+
+pub async fn admin_create_contest_page(
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/").into_response();
+        }
+    } else {
+        return Redirect::to("/login").into_response();
+    }
+
+    let problems = sqlx::query_as::<_, Problem>("SELECT * FROM problems ORDER BY id")
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default();
+
+    let template = CreateContestTemplate {
+        problems,
+        error: None,
+    };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct CreateContestForm {
+    name: String,
+    duration: i32,
+    #[serde(default)]
+    problems: Vec<i32>,
+}
+
+pub async fn admin_create_contest(
+    State(state): State<AppState>,
+    session: Session,
+    Form(form): Form<CreateContestForm>,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/").into_response();
+        }
+    } else {
+        return Redirect::to("/login").into_response();
+    }
+
+    let now = chrono::Utc::now().timestamp();
+    let duration_seconds = form.duration * 60;
+
+    // Insert contest
+    let contest_id: i32 = sqlx::query_scalar(
+        "INSERT INTO contests (name, duration, status, created_at) VALUES ($1, $2, 'pending', $3) RETURNING id"
+    )
+    .bind(&form.name)
+    .bind(duration_seconds)
+    .bind(now)
+    .fetch_one(&state.db)
+    .await
+    .unwrap();
+
+    // Insert contest problems
+    for (order, problem_id) in form.problems.iter().enumerate() {
+        let _ = sqlx::query(
+            "INSERT INTO contest_problems (contest_id, problem_id, problem_order) VALUES ($1, $2, $3)"
+        )
+        .bind(contest_id)
+        .bind(problem_id)
+        .bind(order as i32)
+        .execute(&state.db)
+        .await;
+    }
+
+    Redirect::to("/admin").into_response()
+}
+
+pub async fn admin_start_contest(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/");
+        }
+    } else {
+        return Redirect::to("/login");
+    }
+
+    let _ = state.start_contest(contest_id).await;
+    Redirect::to("/admin")
+}
+
+pub async fn admin_end_contest(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/");
+        }
+    } else {
+        return Redirect::to("/login");
+    }
+
+    let _ = state.end_contest(contest_id).await;
+    Redirect::to("/admin")
+}
+
+#[derive(serde::Serialize, sqlx::FromRow)]
+struct ProblemWithOrder {
+    id: i32,
+    title: String,
+    order: i32,
+}
+
+#[derive(Template)]
+#[template(path = "admin/manage_contest.html")]
+struct ManageContestTemplate {
+    contest: Contest,
+    problems: Vec<ProblemWithOrder>,
+}
+
+pub async fn admin_manage_contest(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/").into_response();
+        }
+    } else {
+        return Redirect::to("/login").into_response();
+    }
+
+    let contest = state.get_contest(contest_id).await.ok().flatten();
+    if contest.is_none() {
+        return Redirect::to("/admin").into_response();
+    }
+    let contest = contest.unwrap();
+
+    let problems = sqlx::query_as::<_, ProblemWithOrder>(
+        r#"
+        SELECT p.id, p.title, cp.problem_order as "order"
+        FROM problems p
+        JOIN contest_problems cp ON p.id = cp.problem_id
+        WHERE cp.contest_id = $1
+        ORDER BY cp.problem_order
+        "#
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let template = ManageContestTemplate { contest, problems };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(serde::Serialize, sqlx::FromRow)]
+struct SubmissionView {
+    id: String,
+    username: String,
+    problem_id: i32,
+    problem_title: String,
+    verdict: String,
+    code_length: i32,
+    time: i32,
+    created_at: i64,
+}
+
+#[derive(Template)]
+#[template(path = "admin/submissions.html")]
+struct SubmissionsTemplate {
+    contest: Contest,
+    submissions: Vec<SubmissionView>,
+}
+
+pub async fn admin_submissions(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check admin
+    if let Some(user) = session::get_user(&session).await {
+        if !user.is_admin {
+            return Redirect::to("/").into_response();
+        }
+    } else {
+        return Redirect::to("/login").into_response();
+    }
+
+    let contest = state.get_contest(contest_id).await.ok().flatten();
+    if contest.is_none() {
+        return Redirect::to("/admin").into_response();
+    }
+    let contest = contest.unwrap();
+
+    let submissions = sqlx::query_as::<_, SubmissionView>(
+        r#"
+        SELECT s.id, s.username, s.problem_id, p.title as problem_title,
+               s.verdict, s.code_length, s.time, s.created_at
+        FROM submissions s
+        JOIN problems p ON s.problem_id = p.id
+        WHERE s.contest_id = $1
+        ORDER BY s.created_at DESC
+        LIMIT 100
+        "#
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let template = SubmissionsTemplate { contest, submissions };
+    Html(template.render().unwrap()).into_response()
+}
+
+// Contest routes
+
+pub async fn contest_join(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check login
+    let _user = match session::get_user(&session).await {
+        Some(u) => u,
+        None => return Redirect::to(&format!("/login?next=/contest/{}/join", contest_id)).into_response(),
+    };
+
+    // Get contest
+    let contest = match state.get_contest(contest_id).await {
+        Ok(Some(c)) => c,
+        _ => return Redirect::to("/").into_response(),
+    };
+
+    // Redirect based on contest status
+    if contest.status == "pending" {
+        Redirect::to(&format!("/contest/{}/waiting", contest_id)).into_response()
+    } else if contest.status == "active" {
+        Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response()
+    } else {
+        Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response()
+    }
+}
+
+#[derive(Template)]
+#[template(path = "contest/waiting.html")]
+struct WaitingRoomTemplate {
+    contest: Contest,
+    username: String,
+    problem_count: i64,
+}
+
+pub async fn contest_waiting(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check login
+    let user = match session::get_user(&session).await {
+        Some(u) => u,
+        None => return Redirect::to(&format!("/login?next=/contest/{}/waiting", contest_id)).into_response(),
+    };
+
+    // Get contest
+    let contest = match state.get_contest(contest_id).await {
+        Ok(Some(c)) => c,
+        _ => return Redirect::to("/").into_response(),
+    };
+
+    // If contest is active, redirect to problems
+    if contest.status == "active" {
+        return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response();
+    }
+
+    // Get problem count
+    let problem_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM contest_problems WHERE contest_id = $1"
+    )
+    .bind(contest_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    let template = WaitingRoomTemplate {
+        contest,
+        username: user.username,
+        problem_count,
+    };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(serde::Serialize, sqlx::FromRow)]
+struct ProblemListItem {
+    id: i32,
+    title: String,
+    order: i32,
+    verdict: Option<String>,
+}
+
+#[derive(Template)]
+#[template(path = "contest/problems.html")]
+struct ProblemsTemplate {
+    contest: Contest,
+    username: String,
+    problems: Vec<ProblemListItem>,
+    time_remaining: Option<i64>,
+}
+
+pub async fn contest_problems(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check login
+    let user = match session::get_user(&session).await {
+        Some(u) => u,
+        None => return Redirect::to(&format!("/login?next=/contest/{}/problems", contest_id)).into_response(),
+    };
+
+    // Get contest
+    let contest = match state.get_contest(contest_id).await {
+        Ok(Some(c)) => c,
+        _ => return Redirect::to("/").into_response(),
+    };
+
+    // If contest is not active, redirect appropriately
+    if contest.status == "pending" {
+        return Redirect::to(&format!("/contest/{}/waiting", contest_id)).into_response();
+    } else if contest.status == "ended" {
+        return Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response();
+    }
+
+    // Get problems with user's best submission verdict
+    let problems = sqlx::query_as::<_, ProblemListItem>(
+        r#"
+        SELECT p.id, p.title, cp.problem_order as "order",
+               (SELECT s.verdict FROM submissions s
+                WHERE s.username = $1 AND s.contest_id = $2 AND s.problem_id = p.id
+                ORDER BY
+                    CASE WHEN s.verdict = 'AC' THEN 0 ELSE 1 END,
+                    s.code_length ASC,
+                    s.created_at ASC
+                LIMIT 1) as verdict
+        FROM problems p
+        JOIN contest_problems cp ON p.id = cp.problem_id
+        WHERE cp.contest_id = $2
+        ORDER BY cp.problem_order
+        "#
+    )
+    .bind(&user.username)
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let time_remaining = state.get_time_remaining(&contest);
+
+    let template = ProblemsTemplate {
+        contest,
+        username: user.username,
+        problems,
+        time_remaining,
+    };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(Template)]
+#[template(path = "contest/problem.html")]
+struct ProblemPageTemplate {
+    contest: Contest,
+    problem: Problem,
+    username: String,
+    statement: String,
+    time_remaining: Option<i64>,
+    contest_ended: bool,
+}
+
+pub async fn contest_problem(
+    Path((contest_id, problem_id)): Path<(i32, i32)>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    // Check login
+    let user = match session::get_user(&session).await {
+        Some(u) => u,
+        None => return Redirect::to(&format!("/login?next=/contest/{}/problems/{}", contest_id, problem_id)).into_response(),
+    };
+
+    // Get contest
+    let contest = match state.get_contest(contest_id).await {
+        Ok(Some(c)) => c,
+        _ => return Redirect::to("/").into_response(),
+    };
+
+    // If contest not active, redirect
+    if contest.status != "active" {
+        return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response();
+    }
+
+    // Get problem
+    let problem = match sqlx::query_as::<_, Problem>("SELECT * FROM problems WHERE id = $1")
+        .bind(problem_id)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(p)) => p,
+        _ => return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response(),
+    };
+
+    // Render markdown statement with sanitization
+    let statement_html = crate::markdown::render_markdown(&problem.statement);
+
+    let time_remaining = state.get_time_remaining(&contest);
+    let contest_ended = state.is_contest_ended(&contest);
+
+    let template = ProblemPageTemplate {
+        contest,
+        problem,
+        username: user.username,
+        statement: statement_html,
+        time_remaining,
+        contest_ended,
+    };
+    Html(template.render().unwrap()).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct SubmitForm {
+    code: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct SubmitResponse {
+    verdict: String,
+    code_length: i32,
+    time: i32,
+    output: String,
+}
+
+pub async fn contest_submit(
+    Path((contest_id, problem_id)): Path<(i32, i32)>,
+    State(state): State<AppState>,
+    session: Session,
+    Form(form): Form<SubmitForm>,
+) -> impl IntoResponse {
+    // Check login
+    let user = match session::get_user(&session).await {
+        Some(u) => u,
+        None => return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length: 0,
+            time: 0,
+            output: "Not logged in".to_string(),
+        }).into_response(),
+    };
+
+    // Get contest
+    let contest = match state.get_contest(contest_id).await {
+        Ok(Some(c)) => c,
+        _ => return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length: 0,
+            time: 0,
+            output: "Contest not found".to_string(),
+        }).into_response(),
+    };
+
+    // Check contest is active
+    if contest.status != "active" || state.is_contest_ended(&contest) {
+        return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length: 0,
+            time: 0,
+            output: "Contest is not active".to_string(),
+        }).into_response();
+    }
+
+    let code = form.code.trim();
+    let code_length = code.as_bytes().len() as i32;
+
+    // Get problem (includes statement and test data)
+    let problem = match sqlx::query_as::<_, Problem>("SELECT * FROM problems WHERE id = $1")
+        .bind(problem_id)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(p)) => p,
+        _ => return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length,
+            time: 0,
+            output: "Problem not found".to_string(),
+        }).into_response(),
+    };
+
+    // Check that test data exists
+    if problem.test_input.is_empty() || problem.test_output.is_empty() {
+        return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length,
+            time: 0,
+            output: "No test cases found for this problem".to_string(),
+        }).into_response();
+    }
+
+    // Run the code through isolate with problem-specific limits
+    let box_id = get_free_box_id().await;
+    let runner = CodeRunner::new(box_id);
+
+    // For this contest, only Python 3.11 is allowed
+    let language_id = "python3.11_function_f";
+
+    let result = match runner.judge(
+        code,
+        language_id,
+        &problem.test_input,
+        &problem.test_output,
+        problem.time_limit_secs,
+        problem.memory_limit_kb as u64
+    ).await {
+        Ok(r) => r,
+        Err(e) => {
+            return axum::Json(SubmitResponse {
+                verdict: "ERROR".to_string(),
+                code_length,
+                time: 0,
+                output: format!("Judge error: {}", e),
+            }).into_response();
+        }
+    };
+
+    let verdict = result.verdict;
+    let time_ms = result.time_ms;
+    let output = result.output;
+
+    // Save submission
+    let now = chrono::Utc::now().timestamp();
+    let submission_id = generate_submission_id();
+
+    let _ = sqlx::query(
+        "INSERT INTO submissions (id, username, contest_id, problem_id, verdict, code_length, time, code, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
+    )
+    .bind(&submission_id)
+    .bind(&user.username)
+    .bind(contest_id)
+    .bind(problem_id)
+    .bind(verdict.as_str())
+    .bind(code_length)
+    .bind(time_ms)
+    .bind(code)
+    .bind(now)
+    .execute(&state.db)
+    .await;
+
+    axum::Json(SubmitResponse {
+        verdict: verdict.to_string(),
+        code_length,
+        time: time_ms,
+        output,
+    }).into_response()
+}
+
+fn generate_submission_id() -> String {
+    use rand::Rng;
+    let bytes: [u8; 16] = rand::rng().random();
+    base64_encode(&bytes)
+}
+
+fn base64_encode(bytes: &[u8]) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut result = String::new();
+    for chunk in bytes.chunks(3) {
+        let b1 = chunk[0];
+        let b2 = chunk.get(1).copied().unwrap_or(0);
+        let b3 = chunk.get(2).copied().unwrap_or(0);
+
+        result.push(CHARSET[(b1 >> 2) as usize] as char);
+        result.push(CHARSET[(((b1 & 0x03) << 4) | (b2 >> 4)) as usize] as char);
+        if chunk.len() > 1 {
+            result.push(CHARSET[(((b2 & 0x0f) << 2) | (b3 >> 6)) as usize] as char);
+        }
+        if chunk.len() > 2 {
+            result.push(CHARSET[(b3 & 0x3f) as usize] as char);
+        }
+    }
+    result
+}
+
+// Leaderboard
+
+#[derive(serde::Serialize, Clone)]
+struct UserProblemResult {
+    code_length: i32,
+    medal: String, // "diamond", "gold", or "none"
+}
+
+#[derive(serde::Serialize, Clone)]
+struct LeaderboardEntry {
+    username: String,
+    total_score: i32,
+    problems_solved: i64,
+    total_bytes: i64,
+    diamonds: i32,
+    golds: i32,
+    problem_results: Vec<Option<UserProblemResult>>, // One per problem in order
+}
+
+#[derive(serde::Serialize, sqlx::FromRow)]
+struct ProblemScore {
+    problem_id: i32,
+    username: String,
+    code_length: i32,
+}
+
+#[derive(Template)]
+#[template(path = "contest/leaderboard.html")]
+struct LeaderboardTemplate {
+    contest: Contest,
+    username: Option<String>,
+    entries: Vec<LeaderboardEntry>,
+    problem_ids: Vec<i32>,
+}
+
+pub async fn contest_leaderboard(
+    Path(contest_id): Path<i32>,
+    State(state): State<AppState>,
+    session: Session,
+) -> impl IntoResponse {
+    let user = session::get_user(&session).await;
+
+    // Get contest
+    let contest = match state.get_contest(contest_id).await {
+        Ok(Some(c)) => c,
+        _ => return Redirect::to("/").into_response(),
+    };
+
+    // Get problem IDs for this contest
+    let problem_ids: Vec<i32> = sqlx::query_scalar(
+        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    // For each problem, find the best (shortest) accepted solution and count how many have it
+    let mut best_solutions: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+    let mut best_solution_counts: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+
+    for &pid in &problem_ids {
+        let best: Option<i32> = sqlx::query_scalar(
+            "SELECT MIN(code_length) FROM submissions
+             WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'"
+        )
+        .bind(contest_id)
+        .bind(pid)
+        .fetch_optional(&state.db)
+        .await
+        .ok()
+        .flatten();
+
+        if let Some(best_len) = best {
+            best_solutions.insert(pid, best_len);
+
+            // Count how many users have this best solution
+            let count: i64 = sqlx::query_scalar(
+                r#"SELECT COUNT(DISTINCT username) FROM (
+                    SELECT DISTINCT ON (username) username, code_length
+                    FROM submissions
+                    WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'
+                    ORDER BY username, code_length ASC, created_at ASC
+                ) AS best_per_user WHERE code_length = $3"#
+            )
+            .bind(contest_id)
+            .bind(pid)
+            .bind(best_len)
+            .fetch_one(&state.db)
+            .await
+            .unwrap_or(0);
+
+            best_solution_counts.insert(pid, count as i32);
+        }
+    }
+
+    // Get all users' best submissions for each problem
+    let user_scores: Vec<ProblemScore> = sqlx::query_as::<_, ProblemScore>(
+        r#"
+        SELECT DISTINCT ON (problem_id, username)
+               problem_id, username, code_length
+        FROM submissions
+        WHERE contest_id = $1 AND verdict = 'AC'
+        ORDER BY problem_id, username, code_length ASC, created_at ASC
+        "#
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    // Build user data with medals
+    let mut user_data: std::collections::HashMap<
+        String,
+        (i32, i64, i64, i32, i32, std::collections::HashMap<i32, UserProblemResult>)
+    > = std::collections::HashMap::new();
+
+    for score in user_scores {
+        let entry = user_data.entry(score.username.clone()).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+
+        // Determine medal type
+        let (points, medal) = if let Some(&best_len) = best_solutions.get(&score.problem_id) {
+            if score.code_length == best_len {
+                let count = best_solution_counts.get(&score.problem_id).copied().unwrap_or(0);
+                if count == 1 {
+                    // Diamond: unique best solution
+                    entry.3 += 1; // diamonds count
+                    (10000, "diamond".to_string())
+                } else {
+                    // Gold: shared best solution
+                    entry.4 += 1; // golds count
+                    (10000, "gold".to_string())
+                }
+            } else {
+                // Bronze: solved but not best
+                ((10000 * best_len / score.code_length).max(1), "none".to_string())
+            }
+        } else {
+            (0, "none".to_string())
+        };
+
+        entry.0 += points;
+        entry.1 += 1;
+        entry.2 += score.code_length as i64;
+        entry.5.insert(score.problem_id, UserProblemResult {
+            code_length: score.code_length,
+            medal,
+        });
+    }
+
+    // Convert to sorted entries with problem results in order
+    let mut entries: Vec<LeaderboardEntry> = user_data
+        .into_iter()
+        .map(|(username, (score, solved, bytes, diamonds, golds, results_map))| {
+            let problem_results: Vec<Option<UserProblemResult>> = problem_ids
+                .iter()
+                .map(|pid| results_map.get(pid).cloned())
+                .collect();
+
+            LeaderboardEntry {
+                username,
+                total_score: score,
+                problems_solved: solved,
+                total_bytes: bytes,
+                diamonds,
+                golds,
+                problem_results,
+            }
+        })
+        .collect();
+
+    // Sort by score (descending), then by total bytes (ascending)
+    entries.sort_by(|a, b| {
+        b.total_score.cmp(&a.total_score)
+            .then(a.total_bytes.cmp(&b.total_bytes))
+    });
+
+    let template = LeaderboardTemplate {
+        contest,
+        username: user.map(|u| u.username),
+        entries,
+        problem_ids,
+    };
+    Html(template.render().unwrap()).into_response()
+}

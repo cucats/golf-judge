@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}{{ problem.title }} - {{ contest.name }}{% endblock %}
+
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
+
+<div class="nav">
+    <div>
+        <strong>{{ contest.name }}</strong>
+    </div>
+    <div>
+        <a href="/contest/{{ contest.id }}/problems">Problems</a>
+        <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
+        <span>{{ username }}</span>
+        {% if let Some(remaining) = time_remaining %}
+            <span style="color: #fbbf24; font-weight: bold;">{{ remaining / 60 }}:{% if remaining % 60 < 10 %}0{% endif %}{{ remaining % 60 }}</span>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display: flex; gap: 20px; padding: 20px; flex-wrap: wrap;">
+    <!-- Problem Statement -->
+    <div style="flex: 1; min-width: 400px; background-color: #1e293b; border-radius: 8px; padding: 24px;">
+        <h2 style="font-size: 1.875rem; margin-bottom: 16px;">{{ problem.title }}</h2>
+        <div style="color: #e5e7eb; line-height: 1.75;">
+            {{ statement|safe }}
+        </div>
+    </div>
+
+    <!-- Editor and Output -->
+    <div style="flex: 1; min-width: 400px; display: flex; flex-direction: column; gap: 16px;">
+        <form method="POST" action="/contest/{{ contest.id }}/problems/{{ problem.id }}/submit" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- ACE Editor -->
+            <div style="background-color: #1e293b; border-radius: 8px; overflow: hidden; height: 500px;">
+                <div id="editor" style="height: 100%; width: 100%;"></div>
+            </div>
+            <input type="hidden" name="code" id="code-input" value="">
+
+            <!-- Byte count and submit button -->
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="color: #9ca3af; margin-right: auto;">
+                    <span id="byte-count">0</span> bytes
+                    <span style="margin-left: 20px;">Tabs: <span id="tab-count">0</span></span>
+                    <span style="margin-left: 10px;">Spaces: <span id="space-count">0</span></span>
+                </div>
+                {% if contest_ended %}
+                    <div style="color: #ef4444; font-weight: 700;">Contest has ended</div>
+                {% else %}
+                    <button type="submit" id="submit-btn">Submit</button>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Output -->
+        <pre style="background-color: #1e293b; border-radius: 8px; padding: 16px; max-height: 200px; overflow-y: auto; color: #e5e7eb; font-size: 0.875rem;"><code id="output">Output shows up here!</code></pre>
+    </div>
+</div>
+
+<script>
+    let editor;
+    let byteCountEl = document.getElementById('byte-count');
+    let tabCountEl = document.getElementById('tab-count');
+    let spaceCountEl = document.getElementById('space-count');
+    let codeInput = document.getElementById('code-input');
+    let outputEl = document.getElementById('output');
+    let submitBtn = document.getElementById('submit-btn');
+
+    function updateCounts() {
+        const code = editor.getValue();
+        codeInput.value = code;
+
+        // Calculate byte count
+        const blob = new Blob([code]);
+        byteCountEl.textContent = blob.size;
+
+        // Count tabs and spaces
+        const tabs = (code.match(/\t/g) || []).length;
+        const spaces = (code.match(/ /g) || []).length;
+        tabCountEl.textContent = tabs;
+        spaceCountEl.textContent = spaces;
+    }
+
+    // Initialize ACE editor
+    ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.32.7/src-noconflict/');
+    editor = ace.edit('editor');
+    editor.setTheme('ace/theme/cobalt');
+    editor.session.setMode('ace/mode/python');
+    editor.setOptions({
+        useSoftTabs: false,
+        tabSize: 4,
+        showInvisibles: true,
+        fontSize: '14px'
+    });
+
+    editor.session.on('change', updateCounts);
+    updateCounts();
+
+    // Ctrl+Enter to submit
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            submitBtn?.click();
+        }
+    });
+
+    // Handle form submission
+    const form = document.querySelector('form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        outputEl.textContent = 'Grading...';
+
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                outputEl.textContent = `Verdict: ${result.verdict}\nCode Length: ${result.code_length} bytes\nTime: ${result.time}ms\n\n${result.output || ''}`;
+            } else {
+                outputEl.textContent = 'Error submitting code';
+            }
+        } catch (err) {
+            outputEl.textContent = 'Error: ' + err.message;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit';
+        }
+    });
+</script>
+{% endblock %}
