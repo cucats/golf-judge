@@ -540,7 +540,8 @@ pub async fn contest_join(
     let user = match session::get_user(&session).await {
         Some(u) => u,
         None => {
-            return Redirect::to(&format!("/login?next=/contest/{contest_id}/join")).into_response();
+            return Redirect::to(&format!("/login?next=/contest/{contest_id}/join"))
+                .into_response();
         }
     };
 
