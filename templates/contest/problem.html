@@ -10,23 +10,85 @@
         <strong>{{ contest.name }}</strong>
     </div>
     <div>
+        <a href="/">Home</a>
         <a href="/contest/{{ contest.id }}/problems">Problems</a>
         <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
         <span>{{ username }}</span>
         {% if let Some(remaining) = time_remaining %}
-            <span style="color: #fbbf24; font-weight: bold;">{{ remaining / 60 }}:{% if remaining % 60 < 10 %}0{% endif %}{{ remaining % 60 }}</span>
+            <span id="timer" style="color: #fbbf24; font-weight: bold;" data-remaining="{{ remaining }}">{{ remaining / 60 }}:{% if remaining % 60 < 10 %}0{% endif %}{{ remaining % 60 }}</span>
         {% endif %}
     </div>
 </div>
+
+{% if let Some(remaining) = time_remaining %}
+<script>
+    let remaining = parseInt(document.getElementById('timer').getAttribute('data-remaining'));
+    setInterval(() => {
+        if (remaining > 0) {
+            remaining--;
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            document.getElementById('timer').textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+            if (remaining === 0) {
+                location.reload();
+            }
+        }
+    }, 1000);
+</script>
+{% endif %}
 
 <div style="display: flex; gap: 20px; padding: 20px; flex-wrap: wrap;">
     <!-- Problem Statement -->
     <div style="flex: 1; min-width: 400px; background-color: #1e293b; border-radius: 8px; padding: 24px;">
         <h2 style="font-size: 1.875rem; margin-bottom: 16px;">{{ problem.title }}</h2>
-        <div style="color: #e5e7eb; line-height: 1.75;">
+        <div class="problem-statement" style="color: #e5e7eb; line-height: 1.75;">
             {{ statement|safe }}
         </div>
     </div>
+
+    <style>
+        .problem-statement ul, .problem-statement ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+        .problem-statement li {
+            margin: 8px 0;
+        }
+        .problem-statement p {
+            margin: 12px 0;
+        }
+        .problem-statement code {
+            background-color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .problem-statement code::before,
+        .problem-statement code::after {
+            content: ' ';
+            letter-spacing: -0.2em;
+        }
+        .problem-statement pre {
+            background-color: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+        .problem-statement pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .problem-statement pre code::before,
+        .problem-statement pre code::after {
+            content: none;
+        }
+        .problem-statement h2, .problem-statement h3 {
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+    </style>
 
     <!-- Editor and Output -->
     <div style="flex: 1; min-width: 400px; display: flex; flex-direction: column; gap: 16px;">
@@ -114,18 +176,23 @@
         outputEl.textContent = 'Grading...';
 
         const formData = new FormData(form);
+        const urlEncoded = new URLSearchParams(formData);
 
         try {
             const response = await fetch(form.action, {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: urlEncoded
             });
 
             if (response.ok) {
                 const result = await response.json();
                 outputEl.textContent = `Verdict: ${result.verdict}\nCode Length: ${result.code_length} bytes\nTime: ${result.time}ms\n\n${result.output || ''}`;
             } else {
-                outputEl.textContent = 'Error submitting code';
+                const text = await response.text();
+                outputEl.textContent = `Error (HTTP ${response.status}): ${text}`;
             }
         } catch (err) {
             outputEl.textContent = 'Error: ' + err.message;

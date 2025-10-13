@@ -3,7 +3,23 @@
 {% block title %}CUCaTS Code Golf{% endblock %}
 
 {% block content %}
-<div class="flex flex-col items-center justify-center min-h-screen">
+<div class="nav">
+    <div>
+        <strong>CUCaTS Code Golf</strong>
+    </div>
+    <div>
+        {% if is_admin %}
+            <a href="/admin">Admin Panel</a>
+        {% endif %}
+        {% if let Some(user) = username %}
+            <span>{{ user }}</span>
+        {% else %}
+            <a href="/login">Login</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="flex flex-col items-center justify-center" style="min-height: 80vh;">
     <h1>CUCaTS Code Golf</h1>
 
     <div class="w-full max-w-md">
@@ -20,8 +36,12 @@
                         Duration: {{ contest.duration / 60 }} minutes
                         <span class="badge {{ contest.status }}">{{ contest.status }}</span>
                     </p>
-                    <a href="/login?next=/contest/{{ contest.id }}/join">
-                        <button>Join Contest</button>
+                    <a href="/contest/{{ contest.id }}/join">
+                        {% if contest.status == "ended" %}
+                            <button>View Results</button>
+                        {% else %}
+                            <button>Join Contest</button>
+                        {% endif %}
                     </a>
                 </div>
             {% endfor %}

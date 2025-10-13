@@ -221,6 +221,11 @@ impl CodeRunner {
             "--processes",
             "--meta",
             &meta_file,
+            // Directory bindings for Python
+            "--dir=/usr",
+            "--dir=/lib",
+            "--dir=/lib64",
+            "--dir=/bin",
             "--run",
             "--",
             language.run_command.program,

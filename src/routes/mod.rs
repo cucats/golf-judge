@@ -3,6 +3,7 @@ use axum::{
     extract::{Path, Query, State},
     response::{Html, IntoResponse, Redirect},
     Form,
+    body::Bytes,
 };
 use serde::Deserialize;
 use tower_sessions::Session;
@@ -17,15 +18,21 @@ use crate::{
 #[template(path = "index.html")]
 struct IndexTemplate {
     contests: Vec<Contest>,
+    username: Option<String>,
+    is_admin: bool,
 }
 
-pub async fn index(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn index(State(state): State<AppState>, session: Session) -> impl IntoResponse {
     let contests = sqlx::query_as::<_, Contest>("SELECT * FROM contests ORDER BY created_at DESC")
         .fetch_all(&state.db)
         .await
         .unwrap_or_default();
 
-    let template = IndexTemplate { contests };
+    let user = session::get_user(&session).await;
+    let username = user.as_ref().map(|u| u.username.clone());
+    let is_admin = user.as_ref().map(|u| u.is_admin).unwrap_or(false);
+
+    let template = IndexTemplate { contests, username, is_admin };
     Html(template.render().unwrap())
 }
 
@@ -182,10 +189,14 @@ pub async fn admin_create_contest_page(
         return Redirect::to("/login").into_response();
     }
 
-    let problems = sqlx::query_as::<_, Problem>("SELECT * FROM problems ORDER BY id")
-        .fetch_all(&state.db)
-        .await
-        .unwrap_or_default();
+    // Load problems from filesystem
+    let problem_ids = crate::problems::list_problems().unwrap_or_default();
+    let mut problems = Vec::new();
+    for id in problem_ids {
+        if let Ok(problem) = crate::problems::load_problem(&id) {
+            problems.push(problem);
+        }
+    }
 
     let template = CreateContestTemplate {
         problems,
@@ -194,18 +205,11 @@ pub async fn admin_create_contest_page(
     Html(template.render().unwrap()).into_response()
 }
 
-#[derive(Deserialize)]
-pub struct CreateContestForm {
-    name: String,
-    duration: i32,
-    #[serde(default)]
-    problems: Vec<i32>,
-}
 
 pub async fn admin_create_contest(
     State(state): State<AppState>,
     session: Session,
-    Form(form): Form<CreateContestForm>,
+    body: Bytes,
 ) -> impl IntoResponse {
     // Check admin
     if let Some(user) = session::get_user(&session).await {
@@ -216,14 +220,37 @@ pub async fn admin_create_contest(
         return Redirect::to("/login").into_response();
     }
 
+    // Parse form data manually to handle array fields
+    let form_str = String::from_utf8_lossy(&body);
+    let mut name = String::new();
+    let mut duration = 0i32;
+    let mut problems = Vec::new();
+
+    for pair in form_str.split('&') {
+        if let Some((key, value)) = pair.split_once('=') {
+            // Replace + with space before decoding (application/x-www-form-urlencoded standard)
+            let key_replaced = key.replace('+', " ");
+            let value_replaced = value.replace('+', " ");
+            let key = urlencoding::decode(&key_replaced).unwrap_or_default();
+            let value = urlencoding::decode(&value_replaced).unwrap_or_default();
+
+            match key.as_ref() {
+                "name" => name = value.to_string(),
+                "duration" => duration = value.parse().unwrap_or(60),
+                "problems" => problems.push(value.to_string()),
+                _ => {}
+            }
+        }
+    }
+
     let now = chrono::Utc::now().timestamp();
-    let duration_seconds = form.duration * 60;
+    let duration_seconds = duration * 60;
 
     // Insert contest
     let contest_id: i32 = sqlx::query_scalar(
         "INSERT INTO contests (name, duration, status, created_at) VALUES ($1, $2, 'pending', $3) RETURNING id"
     )
-    .bind(&form.name)
+    .bind(&name)
     .bind(duration_seconds)
     .bind(now)
     .fetch_one(&state.db)
@@ -231,7 +258,7 @@ pub async fn admin_create_contest(
     .unwrap();
 
     // Insert contest problems
-    for (order, problem_id) in form.problems.iter().enumerate() {
+    for (order, problem_id) in problems.iter().enumerate() {
         let _ = sqlx::query(
             "INSERT INTO contest_problems (contest_id, problem_id, problem_order) VALUES ($1, $2, $3)"
         )
@@ -281,9 +308,9 @@ pub async fn admin_end_contest(
     Redirect::to("/admin")
 }
 
-#[derive(serde::Serialize, sqlx::FromRow)]
+#[derive(serde::Serialize)]
 struct ProblemWithOrder {
-    id: i32,
+    id: String,
     title: String,
     order: i32,
 }
@@ -315,19 +342,26 @@ pub async fn admin_manage_contest(
     }
     let contest = contest.unwrap();
 
-    let problems = sqlx::query_as::<_, ProblemWithOrder>(
-        r#"
-        SELECT p.id, p.title, cp.problem_order as "order"
-        FROM problems p
-        JOIN contest_problems cp ON p.id = cp.problem_id
-        WHERE cp.contest_id = $1
-        ORDER BY cp.problem_order
-        "#
+    // Get problem IDs and orders from contest_problems
+    let contest_problems: Vec<(String, i32)> = sqlx::query_as(
+        "SELECT problem_id, problem_order FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
     )
     .bind(contest_id)
     .fetch_all(&state.db)
     .await
     .unwrap_or_default();
+
+    // Load problem data from filesystem and join with contest_problems
+    let mut problems = Vec::new();
+    for (problem_id, order) in contest_problems {
+        if let Ok(problem) = crate::problems::load_problem(&problem_id) {
+            problems.push(ProblemWithOrder {
+                id: problem.id,
+                title: problem.title,
+                order,
+            });
+        }
+    }
 
     let template = ManageContestTemplate { contest, problems };
     Html(template.render().unwrap()).into_response()
@@ -337,7 +371,7 @@ pub async fn admin_manage_contest(
 struct SubmissionView {
     id: String,
     username: String,
-    problem_id: i32,
+    problem_id: String,
     problem_title: String,
     verdict: String,
     code_length: i32,
@@ -372,12 +406,11 @@ pub async fn admin_submissions(
     }
     let contest = contest.unwrap();
 
-    let submissions = sqlx::query_as::<_, SubmissionView>(
+    // Get submissions without joining problems table
+    let submissions_raw: Vec<(String, String, String, String, i32, i32, i64)> = sqlx::query_as(
         r#"
-        SELECT s.id, s.username, s.problem_id, p.title as problem_title,
-               s.verdict, s.code_length, s.time, s.created_at
+        SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.created_at
         FROM submissions s
-        JOIN problems p ON s.problem_id = p.id
         WHERE s.contest_id = $1
         ORDER BY s.created_at DESC
         LIMIT 100
@@ -387,6 +420,26 @@ pub async fn admin_submissions(
     .fetch_all(&state.db)
     .await
     .unwrap_or_default();
+
+    // Load problem titles from filesystem
+    let mut submissions = Vec::new();
+    for (id, username, problem_id, verdict, code_length, time, created_at) in submissions_raw {
+        let problem_title = crate::problems::load_problem(&problem_id)
+            .ok()
+            .map(|p| p.title)
+            .unwrap_or_else(|| problem_id.clone());
+
+        submissions.push(SubmissionView {
+            id,
+            username,
+            problem_id,
+            problem_title,
+            verdict,
+            code_length,
+            time,
+            created_at,
+        });
+    }
 
     let template = SubmissionsTemplate { contest, submissions };
     Html(template.render().unwrap()).into_response()
@@ -399,25 +452,28 @@ pub async fn contest_join(
     State(state): State<AppState>,
     session: Session,
 ) -> impl IntoResponse {
-    // Check login
-    let _user = match session::get_user(&session).await {
-        Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{}/join", contest_id)).into_response(),
-    };
-
-    // Get contest
+    // Get contest first to check status
     let contest = match state.get_contest(contest_id).await {
         Ok(Some(c)) => c,
         _ => return Redirect::to("/").into_response(),
     };
 
+    // If contest has ended, anyone can view leaderboard without login
+    if contest.status == "ended" {
+        return Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response();
+    }
+
+    // For pending or active contests, require login
+    let _user = match session::get_user(&session).await {
+        Some(u) => u,
+        None => return Redirect::to(&format!("/login?next=/contest/{}/join", contest_id)).into_response(),
+    };
+
     // Redirect based on contest status
     if contest.status == "pending" {
         Redirect::to(&format!("/contest/{}/waiting", contest_id)).into_response()
-    } else if contest.status == "active" {
-        Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response()
     } else {
-        Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response()
+        Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response()
     }
 }
 
@@ -468,9 +524,9 @@ pub async fn contest_waiting(
     Html(template.render().unwrap()).into_response()
 }
 
-#[derive(serde::Serialize, sqlx::FromRow)]
+#[derive(serde::Serialize)]
 struct ProblemListItem {
-    id: i32,
+    id: String,
     title: String,
     order: i32,
     verdict: Option<String>,
@@ -509,28 +565,47 @@ pub async fn contest_problems(
         return Redirect::to(&format!("/contest/{}/leaderboard", contest_id)).into_response();
     }
 
-    // Get problems with user's best submission verdict
-    let problems = sqlx::query_as::<_, ProblemListItem>(
-        r#"
-        SELECT p.id, p.title, cp.problem_order as "order",
-               (SELECT s.verdict FROM submissions s
-                WHERE s.username = $1 AND s.contest_id = $2 AND s.problem_id = p.id
-                ORDER BY
-                    CASE WHEN s.verdict = 'AC' THEN 0 ELSE 1 END,
-                    s.code_length ASC,
-                    s.created_at ASC
-                LIMIT 1) as verdict
-        FROM problems p
-        JOIN contest_problems cp ON p.id = cp.problem_id
-        WHERE cp.contest_id = $2
-        ORDER BY cp.problem_order
-        "#
+    // Get problem IDs and orders from contest_problems
+    let contest_problems: Vec<(String, i32)> = sqlx::query_as(
+        "SELECT problem_id, problem_order FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
     )
-    .bind(&user.username)
     .bind(contest_id)
     .fetch_all(&state.db)
     .await
     .unwrap_or_default();
+
+    // Load problem data from filesystem and join with user submissions
+    let mut problems = Vec::new();
+    for (problem_id, order) in contest_problems {
+        if let Ok(problem) = crate::problems::load_problem(&problem_id) {
+            // Get user's best submission verdict for this problem
+            let verdict: Option<String> = sqlx::query_scalar(
+                r#"
+                SELECT verdict FROM submissions
+                WHERE username = $1 AND contest_id = $2 AND problem_id = $3
+                ORDER BY
+                    CASE WHEN verdict = 'AC' THEN 0 ELSE 1 END,
+                    code_length ASC,
+                    created_at ASC
+                LIMIT 1
+                "#
+            )
+            .bind(&user.username)
+            .bind(contest_id)
+            .bind(&problem_id)
+            .fetch_optional(&state.db)
+            .await
+            .ok()
+            .flatten();
+
+            problems.push(ProblemListItem {
+                id: problem.id,
+                title: problem.title,
+                order,
+                verdict,
+            });
+        }
+    }
 
     let time_remaining = state.get_time_remaining(&contest);
 
@@ -555,7 +630,7 @@ struct ProblemPageTemplate {
 }
 
 pub async fn contest_problem(
-    Path((contest_id, problem_id)): Path<(i32, i32)>,
+    Path((contest_id, problem_id)): Path<(i32, String)>,
     State(state): State<AppState>,
     session: Session,
 ) -> impl IntoResponse {
@@ -576,14 +651,10 @@ pub async fn contest_problem(
         return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response();
     }
 
-    // Get problem
-    let problem = match sqlx::query_as::<_, Problem>("SELECT * FROM problems WHERE id = $1")
-        .bind(problem_id)
-        .fetch_optional(&state.db)
-        .await
-    {
-        Ok(Some(p)) => p,
-        _ => return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response(),
+    // Load problem from filesystem
+    let problem = match crate::problems::load_problem(&problem_id) {
+        Ok(p) => p,
+        Err(_) => return Redirect::to(&format!("/contest/{}/problems", contest_id)).into_response(),
     };
 
     // Render markdown statement with sanitization
@@ -617,7 +688,7 @@ pub struct SubmitResponse {
 }
 
 pub async fn contest_submit(
-    Path((contest_id, problem_id)): Path<(i32, i32)>,
+    Path((contest_id, problem_id)): Path<(i32, String)>,
     State(state): State<AppState>,
     session: Session,
     Form(form): Form<SubmitForm>,
@@ -657,14 +728,10 @@ pub async fn contest_submit(
     let code = form.code.trim();
     let code_length = code.as_bytes().len() as i32;
 
-    // Get problem (includes statement and test data)
-    let problem = match sqlx::query_as::<_, Problem>("SELECT * FROM problems WHERE id = $1")
-        .bind(problem_id)
-        .fetch_optional(&state.db)
-        .await
-    {
-        Ok(Some(p)) => p,
-        _ => return axum::Json(SubmitResponse {
+    // Load problem from filesystem
+    let problem = match crate::problems::load_problem(&problem_id) {
+        Ok(p) => p,
+        Err(_) => return axum::Json(SubmitResponse {
             verdict: "ERROR".to_string(),
             code_length,
             time: 0,
@@ -689,13 +756,17 @@ pub async fn contest_submit(
     // For this contest, only Python 3.11 is allowed
     let language_id = "python3.11_function_f";
 
+    // Get time and memory limits
+    let time_limit = crate::problems::get_time_limit();
+    let memory_limit = crate::problems::get_memory_limit();
+
     let result = match runner.judge(
         code,
         language_id,
         &problem.test_input,
         &problem.test_output,
-        problem.time_limit_secs,
-        problem.memory_limit_kb as u64
+        time_limit,
+        memory_limit
     ).await {
         Ok(r) => r,
         Err(e) => {
@@ -723,7 +794,7 @@ pub async fn contest_submit(
     .bind(&submission_id)
     .bind(&user.username)
     .bind(contest_id)
-    .bind(problem_id)
+    .bind(&problem_id)
     .bind(verdict.as_str())
     .bind(code_length)
     .bind(time_ms)
@@ -787,7 +858,7 @@ struct LeaderboardEntry {
 
 #[derive(serde::Serialize, sqlx::FromRow)]
 struct ProblemScore {
-    problem_id: i32,
+    problem_id: String,
     username: String,
     code_length: i32,
 }
@@ -798,7 +869,7 @@ struct LeaderboardTemplate {
     contest: Contest,
     username: Option<String>,
     entries: Vec<LeaderboardEntry>,
-    problem_ids: Vec<i32>,
+    problem_ids: Vec<String>,
 }
 
 pub async fn contest_leaderboard(
@@ -815,7 +886,7 @@ pub async fn contest_leaderboard(
     };
 
     // Get problem IDs for this contest
-    let problem_ids: Vec<i32> = sqlx::query_scalar(
+    let problem_ids: Vec<String> = sqlx::query_scalar(
         "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
     )
     .bind(contest_id)
@@ -824,10 +895,10 @@ pub async fn contest_leaderboard(
     .unwrap_or_default();
 
     // For each problem, find the best (shortest) accepted solution and count how many have it
-    let mut best_solutions: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
-    let mut best_solution_counts: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+    let mut best_solutions: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    let mut best_solution_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
 
-    for &pid in &problem_ids {
+    for pid in &problem_ids {
         let best: Option<i32> = sqlx::query_scalar(
             "SELECT MIN(code_length) FROM submissions
              WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'"
@@ -840,7 +911,7 @@ pub async fn contest_leaderboard(
         .flatten();
 
         if let Some(best_len) = best {
-            best_solutions.insert(pid, best_len);
+            best_solutions.insert(pid.clone(), best_len);
 
             // Count how many users have this best solution
             let count: i64 = sqlx::query_scalar(
@@ -858,7 +929,7 @@ pub async fn contest_leaderboard(
             .await
             .unwrap_or(0);
 
-            best_solution_counts.insert(pid, count as i32);
+            best_solution_counts.insert(pid.clone(), count as i32);
         }
     }
 
@@ -880,7 +951,7 @@ pub async fn contest_leaderboard(
     // Build user data with medals
     let mut user_data: std::collections::HashMap<
         String,
-        (i32, i64, i64, i32, i32, std::collections::HashMap<i32, UserProblemResult>)
+        (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
     > = std::collections::HashMap::new();
 
     for score in user_scores {
@@ -910,7 +981,7 @@ pub async fn contest_leaderboard(
         entry.0 += points;
         entry.1 += 1;
         entry.2 += score.code_length as i64;
-        entry.5.insert(score.problem_id, UserProblemResult {
+        entry.5.insert(score.problem_id.clone(), UserProblemResult {
             code_length: score.code_length,
             medal,
         });
@@ -937,9 +1008,9 @@ pub async fn contest_leaderboard(
         })
         .collect();
 
-    // Sort by score (descending), then by total bytes (ascending)
+    // Sort by problems solved (descending), then by total bytes (ascending)
     entries.sort_by(|a, b| {
-        b.total_score.cmp(&a.total_score)
+        b.problems_solved.cmp(&a.problems_solved)
             .then(a.total_bytes.cmp(&b.total_bytes))
     });
 

@@ -1,6 +1,7 @@
 mod languages;
 mod markdown;
 mod models;
+mod problems;
 mod routes;
 mod runner;
 mod session;
@@ -37,6 +38,16 @@ async fn main() {
 
     // Initialize state
     let state = AppState::new(pool, admin_token);
+
+    // Start background task to auto-end expired contests
+    let state_clone = state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            let _ = state_clone.auto_end_expired_contests().await;
+        }
+    });
 
     // Build router
     let app = Router::new()

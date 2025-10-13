@@ -73,7 +73,7 @@ for __i in range(__t):
 "#,
     compile_command: None,
     run_command: RunCommand {
-        program: "python3",
+        program: "/usr/sbin/python3",
         args: &["main.py"],
     },
 }];

@@ -11,10 +11,10 @@ containing that list. Non-list elements should remain unchanged.
 
 **Examples:**
 
-`f([1, 2, 3])`returns`[[1, 2, 3]]`
+`f([1, 2, 3])` returns `[[1, 2, 3]]`
 
-`f([1, 2, [3, 4]])`returns`[[1, 2, [[3, 4]]]]`
+`f([1, 2, [3, 4]])` returns `[[1, 2, [[3, 4]]]]`
 
-`f([1, 2, [3, 4, [5]], [6, 7]])`returns`[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]`
+`f([1, 2, [3, 4, [5]], [6, 7]])` returns `[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]`
 
-`f(5)`returns`5`(non-list elements unchanged)
+`f(5)` returns `5` (non-list elements unchanged)

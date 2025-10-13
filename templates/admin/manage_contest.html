@@ -19,7 +19,12 @@
         <p><strong>Status:</strong> <span class="badge {{ contest.status }}">{{ contest.status }}</span></p>
         <p><strong>Duration:</strong> {{ contest.duration / 60 }} minutes</p>
         {% if let Some(start) = contest.start_time %}
-            <p><strong>Started:</strong> {{ start }}</p>
+            <p><strong>Started:</strong> <span id="start-time" data-timestamp="{{ start }}"></span></p>
+            <script>
+                const timestamp = parseInt(document.getElementById('start-time').getAttribute('data-timestamp'));
+                const date = new Date(timestamp * 1000);
+                document.getElementById('start-time').textContent = date.toLocaleString();
+            </script>
         {% endif %}
     </div>
 

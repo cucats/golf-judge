@@ -62,4 +62,23 @@ impl AppState {
             .await?;
         Ok(())
     }
+
+    /// Check and automatically end expired contests
+    pub async fn auto_end_expired_contests(&self) -> Result<(), sqlx::Error> {
+        let now = chrono::Utc::now().timestamp();
+
+        // Update contests that are active but have exceeded their duration
+        sqlx::query(
+            "UPDATE contests
+             SET status = 'ended'
+             WHERE status = 'active'
+             AND start_time IS NOT NULL
+             AND $1 >= start_time + duration"
+        )
+        .bind(now)
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
+    }
 }
