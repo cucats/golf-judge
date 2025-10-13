@@ -72,16 +72,16 @@ pub fn list_problems() -> Result<Vec<String>, std::io::Error> {
 
     for entry in fs::read_dir(PROBLEMS_DIR)? {
         let entry = entry?;
-        if entry.file_type()?.is_dir() {
-            if let Some(name) = entry.file_name().to_str() {
-                // Verify this looks like a problem directory
-                let problem_dir = entry.path();
-                if problem_dir.join("statement.md").exists()
-                    && problem_dir.join("input.txt").exists()
-                    && problem_dir.join("output.txt").exists()
-                {
-                    problem_ids.push(name.to_string());
-                }
+        if entry.file_type()?.is_dir()
+            && let Some(name) = entry.file_name().to_str()
+        {
+            // Verify this looks like a problem directory
+            let problem_dir = entry.path();
+            if problem_dir.join("statement.md").exists()
+                && problem_dir.join("input.txt").exists()
+                && problem_dir.join("output.txt").exists()
+            {
+                problem_ids.push(name.to_string());
             }
         }
     }

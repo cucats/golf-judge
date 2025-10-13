@@ -294,18 +294,18 @@ impl CodeRunner {
                         if let Some(num_str) = line
                             .strip_prefix("TESTCASE ")
                             .and_then(|s| s.split(':').next())
+                            && let Ok(n) = num_str.trim().parse::<usize>()
                         {
-                            if let Ok(n) = num_str.trim().parse::<usize>() {
-                                test_num = n;
-                                if let Some(input_desc) = line.split(':').nth(1) {
-                                    test_case_info = format!(
-                                        "Failed on test case {}\n\nInput: {}\n\n",
-                                        test_num,
-                                        input_desc.trim()
-                                    );
-                                }
+                            test_num = n;
+                            if let Some(input_desc) = line.split(':').nth(1) {
+                                test_case_info = format!(
+                                    "Failed on test case {}\n\nInput: {}\n\n",
+                                    test_num,
+                                    input_desc.trim()
+                                );
                             }
                         }
+
                         break;
                     }
                 }
@@ -341,14 +341,14 @@ impl CodeRunner {
                 let mut test_num = 0;
 
                 for line in stderr.lines() {
-                    if line.starts_with("TESTCASE ") && line.contains(":") {
-                        if let Some(num_str) = line
+                    if line.starts_with("TESTCASE ")
+                        && line.contains(":")
+                        && let Some(num_str) = line
                             .strip_prefix("TESTCASE ")
                             .and_then(|s| s.split(':').next())
-                        {
-                            if let Ok(n) = num_str.trim().parse::<usize>() {
-                                test_num = n;
-                            }
+                    {
+                        if let Ok(n) = num_str.trim().parse::<usize>() {
+                            test_num = n;
                         }
                     }
                 }
