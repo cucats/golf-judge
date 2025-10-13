@@ -63,7 +63,7 @@
             </form>
         {% endif %}
         {% if contest.status == "active" %}
-            <form method="POST" action="/admin/contests/{{ contest.id }}/end" style="display: inline;">
+            <form method="POST" action="/admin/contests/{{ contest.id }}/end" style="display: inline;" onsubmit="return confirm('Are you sure you want to end this contest early? This action cannot be undone.');">
                 <button type="submit" class="danger">End Contest</button>
             </form>
         {% endif %}

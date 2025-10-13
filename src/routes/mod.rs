@@ -515,10 +515,21 @@ pub async fn contest_join(
     }
 
     // For pending or active contests, require login
-    let _user = match session::get_user(&session).await {
+    let user = match session::get_user(&session).await {
         Some(u) => u,
         None => return Redirect::to(&format!("/login?next=/contest/{}/join", contest_id)).into_response(),
     };
+
+    // Record participation (idempotent)
+    let now = chrono::Utc::now().timestamp();
+    let _ = sqlx::query(
+        "INSERT INTO contest_participants (contest_id, username, joined_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
+    )
+    .bind(contest_id)
+    .bind(&user.username)
+    .bind(now)
+    .execute(&state.db)
+    .await;
 
     // Redirect based on contest status
     if contest.status == "pending" {
@@ -1008,6 +1019,15 @@ pub async fn contest_leaderboard(
         }
     }
 
+    // Get all participants for this contest
+    let participants: Vec<String> = sqlx::query_scalar(
+        "SELECT username FROM contest_participants WHERE contest_id = $1"
+    )
+    .bind(contest_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
     // Get all users' best submissions for each problem
     let user_scores: Vec<ProblemScore> = sqlx::query_as::<_, ProblemScore>(
         r#"
@@ -1028,6 +1048,11 @@ pub async fn contest_leaderboard(
         String,
         (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
     > = std::collections::HashMap::new();
+
+    // Initialize all participants with zero scores
+    for username in participants {
+        user_data.entry(username).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+    }
 
     for score in user_scores {
         let entry = user_data.entry(score.username.clone()).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
