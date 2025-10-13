@@ -26,6 +26,14 @@ pub fn load_problem(problem_id: &str) -> Result<Problem, std::io::Error> {
     })
 }
 
+/// Load custom grader for a problem (required)
+pub fn load_custom_grader(problem_id: &str) -> Result<String, std::io::Error> {
+    let problem_dir = PathBuf::from(PROBLEMS_DIR).join(problem_id);
+    let grader_path = problem_dir.join("grader.py");
+
+    fs::read_to_string(grader_path)
+}
+
 /// Extract title from markdown (first # heading) and remove it from the content
 fn extract_and_remove_title(markdown: &str) -> (String, String) {
     let lines: Vec<&str> = markdown.lines().collect();

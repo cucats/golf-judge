@@ -760,13 +760,25 @@ pub async fn contest_submit(
     let time_limit = crate::problems::get_time_limit();
     let memory_limit = crate::problems::get_memory_limit();
 
+    // Load custom grader for this problem
+    let custom_grader = match crate::problems::load_custom_grader(&problem_id) {
+        Ok(grader) => grader,
+        Err(_) => return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length,
+            time: 0,
+            output: "Grader not found for this problem".to_string(),
+        }).into_response(),
+    };
+
     let result = match runner.judge(
         code,
         language_id,
         &problem.test_input,
         &problem.test_output,
         time_limit,
-        memory_limit
+        memory_limit,
+        &custom_grader
     ).await {
         Ok(r) => r,
         Err(e) => {

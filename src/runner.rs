@@ -170,7 +170,7 @@ impl CodeRunner {
         })
     }
 
-    /// Run submission against test cases
+    /// Run submission against test cases with custom grader
     pub async fn judge(
         &self,
         code: &str,
@@ -179,6 +179,7 @@ impl CodeRunner {
         test_output: &str,
         time_limit_secs: f64,
         mem_limit_kb: u64,
+        custom_grader: &str,
     ) -> Result<RunResult, String> {
         // Get language definition
         let language = crate::languages::Language::get(language_id)
@@ -195,7 +196,7 @@ impl CodeRunner {
 
         // Write grader to sandbox
         let grader_path = box_path.join(language.grader_filename());
-        fs::write(&grader_path, language.grader_code())
+        fs::write(&grader_path, custom_grader)
             .await
             .map_err(|e| format!("Failed to write grader: {}", e))?;
 

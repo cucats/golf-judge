@@ -1,7 +1,7 @@
 # Balanced Parentheses
 
 Given a string `s` containing only the characters `(` and `)`, determine if the parentheses are balanced.
-Return a truthy value if balanced, falsy otherwise.
+Return `True` or `1` if balanced, and `False` or `0` otherwise.
 
 **Definition of balanced:**
 
