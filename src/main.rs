@@ -18,9 +18,6 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    // Load environment variables
-    dotenv::dotenv().ok();
-
     // Generate admin token
     let admin_token = generate_token();
     println!("Admin URL: http://127.0.0.1:3000/auth/{admin_token}");
