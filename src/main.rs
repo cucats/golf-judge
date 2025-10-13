@@ -8,8 +8,8 @@ mod session;
 mod state;
 
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use sqlx::postgres::PgPoolOptions;
 use state::AppState;

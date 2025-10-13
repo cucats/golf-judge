@@ -1,5 +1,5 @@
 use ammonia::Builder;
-use pulldown_cmark::{html, Parser};
+use pulldown_cmark::{Parser, html};
 
 /// Render markdown to HTML with sanitization
 /// Allows math (MathJax will handle $...$ and $$...$$)

@@ -1,9 +1,9 @@
 use askama::Template;
 use axum::{
-    extract::{Path, Query, State},
-    response::{Html, IntoResponse, Redirect},
     Form,
     body::Bytes,
+    extract::{Path, Query, State},
+    response::{Html, IntoResponse, Redirect},
 };
 use serde::Deserialize;
 use tower_sessions::Session;
@@ -11,14 +11,22 @@ use tower_sessions::Session;
 use crate::{
     models::{Contest, Problem},
     runner::{CodeRunner, get_free_box_id},
-    session, state::AppState,
+    session,
+    state::AppState,
 };
 
 // Type aliases for complex types
 type SubmissionRawTuple = (String, String, String, String, i32, i32, String, i64);
 type UserDataMap = std::collections::HashMap<
     String,
-    (i32, i64, i64, i32, i32, std::collections::HashMap<String, UserProblemResult>)
+    (
+        i32,
+        i64,
+        i64,
+        i32,
+        i32,
+        std::collections::HashMap<String, UserProblemResult>,
+    ),
 >;
 
 #[derive(Template)]
@@ -39,7 +47,11 @@ pub async fn index(State(state): State<AppState>, session: Session) -> impl Into
     let username = user.as_ref().map(|u| u.username.clone());
     let is_admin = user.as_ref().map(|u| u.is_admin).unwrap_or(false);
 
-    let template = IndexTemplate { contests, username, is_admin };
+    let template = IndexTemplate {
+        contests,
+        username,
+        is_admin,
+    };
     Html(template.render().unwrap())
 }
 
@@ -166,7 +178,7 @@ pub async fn admin_dashboard(State(state): State<AppState>, session: Session) ->
         LEFT JOIN contest_problems cp ON c.id = cp.contest_id
         GROUP BY c.id
         ORDER BY c.created_at DESC
-        "#
+        "#,
     )
     .fetch_all(&state.db)
     .await
@@ -211,7 +223,6 @@ pub async fn admin_create_contest_page(
     };
     Html(template.render().unwrap()).into_response()
 }
-
 
 pub async fn admin_create_contest(
     State(state): State<AppState>,
@@ -427,7 +438,9 @@ pub async fn admin_submissions(
     let filter_verdict = query.verdict.clone().unwrap_or_default();
 
     // Build query with optional filters
-    let mut query_str = String::from("SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.code, s.created_at FROM submissions s WHERE s.contest_id = $1");
+    let mut query_str = String::from(
+        "SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.code, s.created_at FROM submissions s WHERE s.contest_id = $1",
+    );
 
     if !filter_username.is_empty() {
         query_str.push_str(" AND s.username = $2");
@@ -443,39 +456,41 @@ pub async fn admin_submissions(
     query_str.push_str(" ORDER BY s.created_at DESC");
 
     // Execute query with appropriate bindings
-    let submissions_raw: Vec<SubmissionRawTuple> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .bind(&filter_username)
-            .bind(&filter_verdict)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    } else if !filter_username.is_empty() {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .bind(&filter_username)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    } else if !filter_verdict.is_empty() {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .bind(&filter_verdict)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    } else {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    };
+    let submissions_raw: Vec<SubmissionRawTuple> =
+        if !filter_username.is_empty() && !filter_verdict.is_empty() {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .bind(&filter_username)
+                .bind(&filter_verdict)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        } else if !filter_username.is_empty() {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .bind(&filter_username)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        } else if !filter_verdict.is_empty() {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .bind(&filter_verdict)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        } else {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        };
 
     // Load problem titles from filesystem
     let mut submissions = Vec::new();
-    for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw {
+    for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw
+    {
         let problem_title = crate::problems::load_problem(&problem_id)
             .ok()
             .map(|p| p.title)
@@ -524,7 +539,9 @@ pub async fn contest_join(
     // For pending or active contests, require login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/join")).into_response(),
+        None => {
+            return Redirect::to(&format!("/login?next=/contest/{contest_id}/join")).into_response();
+        }
     };
 
     // Record participation (idempotent)
@@ -562,7 +579,10 @@ pub async fn contest_waiting(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/waiting")).into_response(),
+        None => {
+            return Redirect::to(&format!("/login?next=/contest/{contest_id}/waiting"))
+                .into_response();
+        }
     };
 
     // Get contest
@@ -577,13 +597,12 @@ pub async fn contest_waiting(
     }
 
     // Get problem count
-    let problem_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM contest_problems WHERE contest_id = $1"
-    )
-    .bind(contest_id)
-    .fetch_one(&state.db)
-    .await
-    .unwrap_or(0);
+    let problem_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM contest_problems WHERE contest_id = $1")
+            .bind(contest_id)
+            .fetch_one(&state.db)
+            .await
+            .unwrap_or(0);
 
     let template = WaitingRoomTemplate {
         contest,
@@ -618,7 +637,10 @@ pub async fn contest_problems(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/problems")).into_response(),
+        None => {
+            return Redirect::to(&format!("/login?next=/contest/{contest_id}/problems"))
+                .into_response();
+        }
     };
 
     // Get contest
@@ -657,7 +679,7 @@ pub async fn contest_problems(
                     code_length ASC,
                     created_at ASC
                 LIMIT 1
-                "#
+                "#,
             )
             .bind(&user.username)
             .bind(contest_id)
@@ -706,7 +728,12 @@ pub async fn contest_problem(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return Redirect::to(&format!("/login?next=/contest/{contest_id}/problems/{problem_id}")).into_response(),
+        None => {
+            return Redirect::to(&format!(
+                "/login?next=/contest/{contest_id}/problems/{problem_id}"
+            ))
+            .into_response();
+        }
     };
 
     // Get contest
@@ -765,23 +792,29 @@ pub async fn contest_submit(
     // Check login
     let user = match session::get_user(&session).await {
         Some(u) => u,
-        None => return axum::Json(SubmitResponse {
-            verdict: "ERROR".to_string(),
-            code_length: 0,
-            time: 0,
-            output: "Not logged in".to_string(),
-        }).into_response(),
+        None => {
+            return axum::Json(SubmitResponse {
+                verdict: "ERROR".to_string(),
+                code_length: 0,
+                time: 0,
+                output: "Not logged in".to_string(),
+            })
+            .into_response();
+        }
     };
 
     // Get contest
     let contest = match state.get_contest(contest_id).await {
         Ok(Some(c)) => c,
-        _ => return axum::Json(SubmitResponse {
-            verdict: "ERROR".to_string(),
-            code_length: 0,
-            time: 0,
-            output: "Contest not found".to_string(),
-        }).into_response(),
+        _ => {
+            return axum::Json(SubmitResponse {
+                verdict: "ERROR".to_string(),
+                code_length: 0,
+                time: 0,
+                output: "Contest not found".to_string(),
+            })
+            .into_response();
+        }
     };
 
     // Check contest is active
@@ -791,7 +824,8 @@ pub async fn contest_submit(
             code_length: 0,
             time: 0,
             output: "Contest is not active".to_string(),
-        }).into_response();
+        })
+        .into_response();
     }
 
     let code = form.code.trim();
@@ -803,8 +837,13 @@ pub async fn contest_submit(
             verdict: "ERROR".to_string(),
             code_length: 0,
             time: 0,
-            output: format!("Code too long: {} bytes (max {} bytes)", code.len(), MAX_CODE_LENGTH),
-        }).into_response();
+            output: format!(
+                "Code too long: {} bytes (max {} bytes)",
+                code.len(),
+                MAX_CODE_LENGTH
+            ),
+        })
+        .into_response();
     }
 
     let code_length = code.len() as i32;
@@ -812,12 +851,15 @@ pub async fn contest_submit(
     // Load problem from filesystem
     let problem = match crate::problems::load_problem(&problem_id) {
         Ok(p) => p,
-        Err(_) => return axum::Json(SubmitResponse {
-            verdict: "ERROR".to_string(),
-            code_length,
-            time: 0,
-            output: "Problem not found".to_string(),
-        }).into_response(),
+        Err(_) => {
+            return axum::Json(SubmitResponse {
+                verdict: "ERROR".to_string(),
+                code_length,
+                time: 0,
+                output: "Problem not found".to_string(),
+            })
+            .into_response();
+        }
     };
 
     // Check that test data exists
@@ -827,7 +869,8 @@ pub async fn contest_submit(
             code_length,
             time: 0,
             output: "No test cases found for this problem".to_string(),
-        }).into_response();
+        })
+        .into_response();
     }
 
     // Run the code through isolate with problem-specific limits
@@ -844,23 +887,29 @@ pub async fn contest_submit(
     // Load custom grader for this problem
     let custom_grader = match crate::problems::load_custom_grader(&problem_id) {
         Ok(grader) => grader,
-        Err(_) => return axum::Json(SubmitResponse {
-            verdict: "ERROR".to_string(),
-            code_length,
-            time: 0,
-            output: "Grader not found for this problem".to_string(),
-        }).into_response(),
+        Err(_) => {
+            return axum::Json(SubmitResponse {
+                verdict: "ERROR".to_string(),
+                code_length,
+                time: 0,
+                output: "Grader not found for this problem".to_string(),
+            })
+            .into_response();
+        }
     };
 
-    let result = match runner.judge(
-        code,
-        language_id,
-        &problem.test_input,
-        &problem.test_output,
-        time_limit,
-        memory_limit,
-        &custom_grader
-    ).await {
+    let result = match runner
+        .judge(
+            code,
+            language_id,
+            &problem.test_input,
+            &problem.test_output,
+            time_limit,
+            memory_limit,
+            &custom_grader,
+        )
+        .await
+    {
         Ok(r) => r,
         Err(e) => {
             return axum::Json(SubmitResponse {
@@ -868,7 +917,8 @@ pub async fn contest_submit(
                 code_length,
                 time: 0,
                 output: format!("Judge error: {e}"),
-            }).into_response();
+            })
+            .into_response();
         }
     };
 
@@ -901,7 +951,8 @@ pub async fn contest_submit(
         code_length,
         time: time_ms,
         output,
-    }).into_response()
+    })
+    .into_response()
 }
 
 fn generate_submission_id() -> String {
@@ -980,7 +1031,7 @@ pub async fn contest_leaderboard(
 
     // Get problem IDs for this contest
     let problem_ids: Vec<String> = sqlx::query_scalar(
-        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
+        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order",
     )
     .bind(contest_id)
     .fetch_all(&state.db)
@@ -988,13 +1039,15 @@ pub async fn contest_leaderboard(
     .unwrap_or_default();
 
     // For each problem, find the best (shortest) accepted solution and count how many have it
-    let mut best_solutions: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
-    let mut best_solution_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    let mut best_solutions: std::collections::HashMap<String, i32> =
+        std::collections::HashMap::new();
+    let mut best_solution_counts: std::collections::HashMap<String, i32> =
+        std::collections::HashMap::new();
 
     for pid in &problem_ids {
         let best: Option<i32> = sqlx::query_scalar(
             "SELECT MIN(code_length) FROM submissions
-             WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'"
+             WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'",
         )
         .bind(contest_id)
         .bind(pid)
@@ -1013,7 +1066,7 @@ pub async fn contest_leaderboard(
                     FROM submissions
                     WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'
                     ORDER BY username, code_length ASC, created_at ASC
-                ) AS best_per_user WHERE code_length = $3"#
+                ) AS best_per_user WHERE code_length = $3"#,
             )
             .bind(contest_id)
             .bind(pid)
@@ -1027,13 +1080,12 @@ pub async fn contest_leaderboard(
     }
 
     // Get all participants for this contest
-    let participants: Vec<String> = sqlx::query_scalar(
-        "SELECT username FROM contest_participants WHERE contest_id = $1"
-    )
-    .bind(contest_id)
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
+    let participants: Vec<String> =
+        sqlx::query_scalar("SELECT username FROM contest_participants WHERE contest_id = $1")
+            .bind(contest_id)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default();
 
     // Get all users' best submissions for each problem
     let user_scores: Vec<ProblemScore> = sqlx::query_as::<_, ProblemScore>(
@@ -1043,7 +1095,7 @@ pub async fn contest_leaderboard(
         FROM submissions
         WHERE contest_id = $1 AND verdict = 'AC'
         ORDER BY problem_id, username, code_length ASC, created_at ASC
-        "#
+        "#,
     )
     .bind(contest_id)
     .fetch_all(&state.db)
@@ -1055,16 +1107,28 @@ pub async fn contest_leaderboard(
 
     // Initialize all participants with zero scores
     for username in participants {
-        user_data.entry(username).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+        user_data
+            .entry(username)
+            .or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
     }
 
     for score in user_scores {
-        let entry = user_data.entry(score.username.clone()).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+        let entry = user_data.entry(score.username.clone()).or_insert((
+            0,
+            0,
+            0,
+            0,
+            0,
+            std::collections::HashMap::new(),
+        ));
 
         // Determine medal type
         let (points, medal) = if let Some(&best_len) = best_solutions.get(&score.problem_id) {
             if score.code_length == best_len {
-                let count = best_solution_counts.get(&score.problem_id).copied().unwrap_or(0);
+                let count = best_solution_counts
+                    .get(&score.problem_id)
+                    .copied()
+                    .unwrap_or(0);
                 if count == 1 {
                     // Diamond: unique best solution
                     entry.3 += 1; // diamonds count
@@ -1076,7 +1140,10 @@ pub async fn contest_leaderboard(
                 }
             } else {
                 // Bronze: solved but not best
-                ((10000 * best_len / score.code_length).max(1), "none".to_string())
+                (
+                    (10000 * best_len / score.code_length).max(1),
+                    "none".to_string(),
+                )
             }
         } else {
             (0, "none".to_string())
@@ -1085,36 +1152,42 @@ pub async fn contest_leaderboard(
         entry.0 += points;
         entry.1 += 1;
         entry.2 += score.code_length as i64;
-        entry.5.insert(score.problem_id.clone(), UserProblemResult {
-            code_length: score.code_length,
-            medal,
-        });
+        entry.5.insert(
+            score.problem_id.clone(),
+            UserProblemResult {
+                code_length: score.code_length,
+                medal,
+            },
+        );
     }
 
     // Convert to sorted entries with problem results in order
     let mut entries: Vec<LeaderboardEntry> = user_data
         .into_iter()
-        .map(|(username, (score, solved, bytes, diamonds, golds, results_map))| {
-            let problem_results: Vec<Option<UserProblemResult>> = problem_ids
-                .iter()
-                .map(|pid| results_map.get(pid).cloned())
-                .collect();
+        .map(
+            |(username, (score, solved, bytes, diamonds, golds, results_map))| {
+                let problem_results: Vec<Option<UserProblemResult>> = problem_ids
+                    .iter()
+                    .map(|pid| results_map.get(pid).cloned())
+                    .collect();
 
-            LeaderboardEntry {
-                username,
-                total_score: score,
-                problems_solved: solved,
-                total_bytes: bytes,
-                diamonds,
-                golds,
-                problem_results,
-            }
-        })
+                LeaderboardEntry {
+                    username,
+                    total_score: score,
+                    problems_solved: solved,
+                    total_bytes: bytes,
+                    diamonds,
+                    golds,
+                    problem_results,
+                }
+            },
+        )
         .collect();
 
     // Sort by problems solved (descending), then by total bytes (ascending), then by username (ascending)
     entries.sort_by(|a, b| {
-        b.problems_solved.cmp(&a.problems_solved)
+        b.problems_solved
+            .cmp(&a.problems_solved)
             .then(a.total_bytes.cmp(&b.total_bytes))
             .then(a.username.cmp(&b.username))
     });
@@ -1142,7 +1215,7 @@ pub async fn api_contest_leaderboard(
 ) -> impl IntoResponse {
     // Get problem IDs for this contest
     let problem_ids: Vec<String> = sqlx::query_scalar(
-        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order"
+        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_order",
     )
     .bind(contest_id)
     .fetch_all(&state.db)
@@ -1150,13 +1223,15 @@ pub async fn api_contest_leaderboard(
     .unwrap_or_default();
 
     // For each problem, find the best (shortest) accepted solution and count how many have it
-    let mut best_solutions: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
-    let mut best_solution_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    let mut best_solutions: std::collections::HashMap<String, i32> =
+        std::collections::HashMap::new();
+    let mut best_solution_counts: std::collections::HashMap<String, i32> =
+        std::collections::HashMap::new();
 
     for pid in &problem_ids {
         let best: Option<i32> = sqlx::query_scalar(
             "SELECT MIN(code_length) FROM submissions
-             WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'"
+             WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'",
         )
         .bind(contest_id)
         .bind(pid)
@@ -1174,7 +1249,7 @@ pub async fn api_contest_leaderboard(
                     FROM submissions
                     WHERE contest_id = $1 AND problem_id = $2 AND verdict = 'AC'
                     ORDER BY username, code_length ASC, created_at ASC
-                ) AS best_per_user WHERE code_length = $3"#
+                ) AS best_per_user WHERE code_length = $3"#,
             )
             .bind(contest_id)
             .bind(pid)
@@ -1188,13 +1263,12 @@ pub async fn api_contest_leaderboard(
     }
 
     // Get all participants for this contest
-    let participants: Vec<String> = sqlx::query_scalar(
-        "SELECT username FROM contest_participants WHERE contest_id = $1"
-    )
-    .bind(contest_id)
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
+    let participants: Vec<String> =
+        sqlx::query_scalar("SELECT username FROM contest_participants WHERE contest_id = $1")
+            .bind(contest_id)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default();
 
     // Get all users' best submissions for each problem
     let user_scores: Vec<ProblemScore> = sqlx::query_as::<_, ProblemScore>(
@@ -1204,7 +1278,7 @@ pub async fn api_contest_leaderboard(
         FROM submissions
         WHERE contest_id = $1 AND verdict = 'AC'
         ORDER BY problem_id, username, code_length ASC, created_at ASC
-        "#
+        "#,
     )
     .bind(contest_id)
     .fetch_all(&state.db)
@@ -1216,16 +1290,28 @@ pub async fn api_contest_leaderboard(
 
     // Initialize all participants with zero scores
     for username in participants {
-        user_data.entry(username).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+        user_data
+            .entry(username)
+            .or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
     }
 
     for score in user_scores {
-        let entry = user_data.entry(score.username.clone()).or_insert((0, 0, 0, 0, 0, std::collections::HashMap::new()));
+        let entry = user_data.entry(score.username.clone()).or_insert((
+            0,
+            0,
+            0,
+            0,
+            0,
+            std::collections::HashMap::new(),
+        ));
 
         // Determine medal type
         let (points, medal) = if let Some(&best_len) = best_solutions.get(&score.problem_id) {
             if score.code_length == best_len {
-                let count = best_solution_counts.get(&score.problem_id).copied().unwrap_or(0);
+                let count = best_solution_counts
+                    .get(&score.problem_id)
+                    .copied()
+                    .unwrap_or(0);
                 if count == 1 {
                     entry.3 += 1;
                     (10000, "diamond".to_string())
@@ -1234,7 +1320,10 @@ pub async fn api_contest_leaderboard(
                     (10000, "gold".to_string())
                 }
             } else {
-                ((10000 * best_len / score.code_length).max(1), "none".to_string())
+                (
+                    (10000 * best_len / score.code_length).max(1),
+                    "none".to_string(),
+                )
             }
         } else {
             (0, "none".to_string())
@@ -1243,35 +1332,41 @@ pub async fn api_contest_leaderboard(
         entry.0 += points;
         entry.1 += 1;
         entry.2 += score.code_length as i64;
-        entry.5.insert(score.problem_id.clone(), UserProblemResult {
-            code_length: score.code_length,
-            medal,
-        });
+        entry.5.insert(
+            score.problem_id.clone(),
+            UserProblemResult {
+                code_length: score.code_length,
+                medal,
+            },
+        );
     }
 
     // Convert to sorted entries
     let mut entries: Vec<LeaderboardEntry> = user_data
         .into_iter()
-        .map(|(username, (score, solved, bytes, diamonds, golds, results_map))| {
-            let problem_results: Vec<Option<UserProblemResult>> = problem_ids
-                .iter()
-                .map(|pid| results_map.get(pid).cloned())
-                .collect();
+        .map(
+            |(username, (score, solved, bytes, diamonds, golds, results_map))| {
+                let problem_results: Vec<Option<UserProblemResult>> = problem_ids
+                    .iter()
+                    .map(|pid| results_map.get(pid).cloned())
+                    .collect();
 
-            LeaderboardEntry {
-                username,
-                total_score: score,
-                problems_solved: solved,
-                total_bytes: bytes,
-                diamonds,
-                golds,
-                problem_results,
-            }
-        })
+                LeaderboardEntry {
+                    username,
+                    total_score: score,
+                    problems_solved: solved,
+                    total_bytes: bytes,
+                    diamonds,
+                    golds,
+                    problem_results,
+                }
+            },
+        )
         .collect();
 
     entries.sort_by(|a, b| {
-        b.problems_solved.cmp(&a.problems_solved)
+        b.problems_solved
+            .cmp(&a.problems_solved)
             .then(a.total_bytes.cmp(&b.total_bytes))
             .then(a.username.cmp(&b.username))
     });
@@ -1279,7 +1374,8 @@ pub async fn api_contest_leaderboard(
     axum::Json(LeaderboardApiResponse {
         entries,
         problem_ids,
-    }).into_response()
+    })
+    .into_response()
 }
 
 pub async fn api_admin_submissions(
@@ -1291,17 +1387,27 @@ pub async fn api_admin_submissions(
     // Check admin
     if let Some(user) = session::get_user(&session).await {
         if !user.is_admin {
-            return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(Vec::<SubmissionView>::new())).into_response();
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(Vec::<SubmissionView>::new()),
+            )
+                .into_response();
         }
     } else {
-        return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(Vec::<SubmissionView>::new())).into_response();
+        return (
+            axum::http::StatusCode::UNAUTHORIZED,
+            axum::Json(Vec::<SubmissionView>::new()),
+        )
+            .into_response();
     }
 
     let filter_username = query.username.clone().unwrap_or_default();
     let filter_verdict = query.verdict.clone().unwrap_or_default();
 
     // Build query with optional filters
-    let mut query_str = String::from("SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.code, s.created_at FROM submissions s WHERE s.contest_id = $1");
+    let mut query_str = String::from(
+        "SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.code, s.created_at FROM submissions s WHERE s.contest_id = $1",
+    );
 
     if !filter_username.is_empty() {
         query_str.push_str(" AND s.username = $2");
@@ -1317,39 +1423,41 @@ pub async fn api_admin_submissions(
     query_str.push_str(" ORDER BY s.created_at DESC");
 
     // Execute query with appropriate bindings
-    let submissions_raw: Vec<SubmissionRawTuple> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .bind(&filter_username)
-            .bind(&filter_verdict)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    } else if !filter_username.is_empty() {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .bind(&filter_username)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    } else if !filter_verdict.is_empty() {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .bind(&filter_verdict)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    } else {
-        sqlx::query_as(&query_str)
-            .bind(contest_id)
-            .fetch_all(&state.db)
-            .await
-            .unwrap_or_default()
-    };
+    let submissions_raw: Vec<SubmissionRawTuple> =
+        if !filter_username.is_empty() && !filter_verdict.is_empty() {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .bind(&filter_username)
+                .bind(&filter_verdict)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        } else if !filter_username.is_empty() {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .bind(&filter_username)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        } else if !filter_verdict.is_empty() {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .bind(&filter_verdict)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        } else {
+            sqlx::query_as(&query_str)
+                .bind(contest_id)
+                .fetch_all(&state.db)
+                .await
+                .unwrap_or_default()
+        };
 
     // Load problem titles from filesystem
     let mut submissions = Vec::new();
-    for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw {
+    for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw
+    {
         let problem_title = crate::problems::load_problem(&problem_id)
             .ok()
             .map(|p| p.title)

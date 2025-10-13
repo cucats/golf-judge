@@ -291,11 +291,18 @@ impl CodeRunner {
 
                 for line in stderr.lines() {
                     if line.starts_with("TESTCASE ") && line.contains(":") {
-                        if let Some(num_str) = line.strip_prefix("TESTCASE ").and_then(|s| s.split(':').next()) {
+                        if let Some(num_str) = line
+                            .strip_prefix("TESTCASE ")
+                            .and_then(|s| s.split(':').next())
+                        {
                             if let Ok(n) = num_str.trim().parse::<usize>() {
                                 test_num = n;
                                 if let Some(input_desc) = line.split(':').nth(1) {
-                                    test_case_info = format!("Failed on test case {}\n\nInput: {}\n\n", test_num, input_desc.trim());
+                                    test_case_info = format!(
+                                        "Failed on test case {}\n\nInput: {}\n\n",
+                                        test_num,
+                                        input_desc.trim()
+                                    );
                                 }
                             }
                         }
@@ -304,7 +311,8 @@ impl CodeRunner {
                 }
 
                 // Get error message
-                let error_msg = stderr.lines()
+                let error_msg = stderr
+                    .lines()
                     .filter(|line| !line.starts_with("TESTCASE "))
                     .collect::<Vec<_>>()
                     .join("\n")
@@ -320,7 +328,11 @@ impl CodeRunner {
                 return Ok(RunResult {
                     verdict: Verdict::RE,
                     time_ms,
-                    output: if output.is_empty() { "Runtime error".to_string() } else { output },
+                    output: if output.is_empty() {
+                        "Runtime error".to_string()
+                    } else {
+                        output
+                    },
                 });
             }
             "TO" => {
@@ -330,7 +342,10 @@ impl CodeRunner {
 
                 for line in stderr.lines() {
                     if line.starts_with("TESTCASE ") && line.contains(":") {
-                        if let Some(num_str) = line.strip_prefix("TESTCASE ").and_then(|s| s.split(':').next()) {
+                        if let Some(num_str) = line
+                            .strip_prefix("TESTCASE ")
+                            .and_then(|s| s.split(':').next())
+                        {
                             if let Ok(n) = num_str.trim().parse::<usize>() {
                                 test_num = n;
                             }
@@ -383,18 +398,23 @@ impl CodeRunner {
                 }
             }
 
-            if failed_test_num == 0
-                && actual_lines.len() != expected_lines.len() {
-                    if actual_lines.len() < expected_lines.len() {
-                        failed_test_num = actual_lines.len() + 1;
-                        expected_value = expected_lines.get(actual_lines.len()).unwrap_or(&"").to_string();
-                        actual_value = "(no output)".to_string();
-                    } else {
-                        failed_test_num = expected_lines.len() + 1;
-                        expected_value = "(no more output expected)".to_string();
-                        actual_value = actual_lines.get(expected_lines.len()).unwrap_or(&"").to_string();
-                    }
+            if failed_test_num == 0 && actual_lines.len() != expected_lines.len() {
+                if actual_lines.len() < expected_lines.len() {
+                    failed_test_num = actual_lines.len() + 1;
+                    expected_value = expected_lines
+                        .get(actual_lines.len())
+                        .unwrap_or(&"")
+                        .to_string();
+                    actual_value = "(no output)".to_string();
+                } else {
+                    failed_test_num = expected_lines.len() + 1;
+                    expected_value = "(no more output expected)".to_string();
+                    actual_value = actual_lines
+                        .get(expected_lines.len())
+                        .unwrap_or(&"")
+                        .to_string();
                 }
+            }
 
             // Extract input info from stderr for the failed test case
             let mut input_info = String::new();

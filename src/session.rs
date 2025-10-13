@@ -13,11 +13,20 @@ pub struct SessionUser {
 
 pub async fn get_user(session: &Session) -> Option<SessionUser> {
     let username: String = session.get::<String>("username").await.ok()??;
-    let is_admin: bool = session.get::<bool>("is_admin").await.ok().flatten().unwrap_or(false);
+    let is_admin: bool = session
+        .get::<bool>("is_admin")
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
     Some(SessionUser { username, is_admin })
 }
 
-pub async fn set_user(session: &Session, username: String, is_admin: bool) -> Result<(), tower_sessions::session::Error> {
+pub async fn set_user(
+    session: &Session,
+    username: String,
+    is_admin: bool,
+) -> Result<(), tower_sessions::session::Error> {
     session.insert("username", username).await?;
     session.insert("is_admin", is_admin).await?;
     Ok(())

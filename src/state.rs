@@ -1,5 +1,5 @@
-use sqlx::PgPool;
 use crate::models::Contest;
+use sqlx::PgPool;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -9,10 +9,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(db: PgPool, admin_token: String) -> Self {
-        Self {
-            db,
-            admin_token,
-        }
+        Self { db, admin_token }
     }
 
     // Contest helper methods
@@ -74,7 +71,7 @@ impl AppState {
              SET status = 'ended'
              WHERE status = 'active'
              AND start_time IS NOT NULL
-             AND $1 >= start_time + duration"
+             AND $1 >= start_time + duration",
         )
         .bind(now)
         .execute(&self.db)
