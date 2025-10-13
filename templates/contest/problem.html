@@ -103,8 +103,6 @@
             <div style="display: flex; gap: 12px; align-items: center;">
                 <div style="color: #9ca3af; margin-right: auto;">
                     <span id="byte-count">0</span> bytes
-                    <span style="margin-left: 20px;">Tabs: <span id="tab-count">0</span></span>
-                    <span style="margin-left: 10px;">Spaces: <span id="space-count">0</span></span>
                 </div>
                 {% if contest_ended %}
                     <div style="color: #ef4444; font-weight: 700;">Contest has ended</div>
@@ -122,8 +120,6 @@
 <script>
     let editor;
     let byteCountEl = document.getElementById('byte-count');
-    let tabCountEl = document.getElementById('tab-count');
-    let spaceCountEl = document.getElementById('space-count');
     let codeInput = document.getElementById('code-input');
     let outputEl = document.getElementById('output');
     let submitBtn = document.getElementById('submit-btn');
@@ -135,12 +131,6 @@
         // Calculate byte count
         const blob = new Blob([code]);
         byteCountEl.textContent = blob.size;
-
-        // Count tabs and spaces
-        const tabs = (code.match(/\t/g) || []).length;
-        const spaces = (code.match(/ /g) || []).length;
-        tabCountEl.textContent = tabs;
-        spaceCountEl.textContent = spaces;
     }
 
     // Initialize ACE editor
@@ -152,7 +142,8 @@
         useSoftTabs: false,
         tabSize: 4,
         showInvisibles: true,
-        fontSize: '14px'
+        fontSize: '14px',
+        showPrintMargin: false
     });
 
     editor.session.on('change', updateCounts);

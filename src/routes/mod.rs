@@ -376,6 +376,7 @@ struct SubmissionView {
     verdict: String,
     code_length: i32,
     time: i32,
+    code: String,
     created_at: i64,
 }
 
@@ -384,10 +385,19 @@ struct SubmissionView {
 struct SubmissionsTemplate {
     contest: Contest,
     submissions: Vec<SubmissionView>,
+    filter_username: String,
+    filter_verdict: String,
+}
+
+#[derive(Deserialize)]
+pub struct SubmissionsQuery {
+    username: Option<String>,
+    verdict: Option<String>,
 }
 
 pub async fn admin_submissions(
     Path(contest_id): Path<i32>,
+    Query(query): Query<SubmissionsQuery>,
     State(state): State<AppState>,
     session: Session,
 ) -> impl IntoResponse {
@@ -406,24 +416,59 @@ pub async fn admin_submissions(
     }
     let contest = contest.unwrap();
 
-    // Get submissions without joining problems table
-    let submissions_raw: Vec<(String, String, String, String, i32, i32, i64)> = sqlx::query_as(
-        r#"
-        SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.created_at
-        FROM submissions s
-        WHERE s.contest_id = $1
-        ORDER BY s.created_at DESC
-        LIMIT 100
-        "#
-    )
-    .bind(contest_id)
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
+    let filter_username = query.username.clone().unwrap_or_default();
+    let filter_verdict = query.verdict.clone().unwrap_or_default();
+
+    // Build query with optional filters
+    let mut query_str = String::from("SELECT s.id, s.username, s.problem_id, s.verdict, s.code_length, s.time, s.code, s.created_at FROM submissions s WHERE s.contest_id = $1");
+
+    if !filter_username.is_empty() {
+        query_str.push_str(" AND s.username = $2");
+    }
+    if !filter_verdict.is_empty() {
+        if filter_username.is_empty() {
+            query_str.push_str(" AND s.verdict = $2");
+        } else {
+            query_str.push_str(" AND s.verdict = $3");
+        }
+    }
+
+    query_str.push_str(" ORDER BY s.created_at DESC LIMIT 100");
+
+    // Execute query with appropriate bindings
+    let submissions_raw: Vec<(String, String, String, String, i32, i32, String, i64)> = if !filter_username.is_empty() && !filter_verdict.is_empty() {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .bind(&filter_username)
+            .bind(&filter_verdict)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    } else if !filter_username.is_empty() {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .bind(&filter_username)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    } else if !filter_verdict.is_empty() {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .bind(&filter_verdict)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    } else {
+        sqlx::query_as(&query_str)
+            .bind(contest_id)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default()
+    };
 
     // Load problem titles from filesystem
     let mut submissions = Vec::new();
-    for (id, username, problem_id, verdict, code_length, time, created_at) in submissions_raw {
+    for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw {
         let problem_title = crate::problems::load_problem(&problem_id)
             .ok()
             .map(|p| p.title)
@@ -437,11 +482,17 @@ pub async fn admin_submissions(
             verdict,
             code_length,
             time,
+            code,
             created_at,
         });
     }
 
-    let template = SubmissionsTemplate { contest, submissions };
+    let template = SubmissionsTemplate {
+        contest,
+        submissions,
+        filter_username: filter_username.clone(),
+        filter_verdict: filter_verdict.clone(),
+    };
     Html(template.render().unwrap()).into_response()
 }
 
@@ -726,6 +777,18 @@ pub async fn contest_submit(
     }
 
     let code = form.code.trim();
+
+    // Check code length limit (10KB max)
+    const MAX_CODE_LENGTH: usize = 10240; // 10KB
+    if code.len() > MAX_CODE_LENGTH {
+        return axum::Json(SubmitResponse {
+            verdict: "ERROR".to_string(),
+            code_length: 0,
+            time: 0,
+            output: format!("Code too long: {} bytes (max {} bytes)", code.len(), MAX_CODE_LENGTH),
+        }).into_response();
+    }
+
     let code_length = code.as_bytes().len() as i32;
 
     // Load problem from filesystem

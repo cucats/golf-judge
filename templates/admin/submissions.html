@@ -11,6 +11,26 @@
         </a>
     </div>
 
+    <!-- Filters -->
+    <form method="GET" style="background-color: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 12px; align-items: end;">
+        <div>
+            <label style="display: block; margin-bottom: 4px; color: #94a3b8; font-size: 0.875rem;">Username</label>
+            <input type="text" name="username" value="{{ filter_username }}" placeholder="Filter by username" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: #e5e7eb;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 4px; color: #94a3b8; font-size: 0.875rem;">Verdict</label>
+            <select name="verdict" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: #e5e7eb;">
+                <option value="">All</option>
+                <option value="AC" {% if filter_verdict == "AC" %}selected{% endif %}>AC</option>
+                <option value="WA" {% if filter_verdict == "WA" %}selected{% endif %}>WA</option>
+                <option value="TLE" {% if filter_verdict == "TLE" %}selected{% endif %}>TLE</option>
+                <option value="RE" {% if filter_verdict == "RE" %}selected{% endif %}>RE</option>
+            </select>
+        </div>
+        <button type="submit" style="padding: 8px 16px; border-radius: 4px; background-color: #3b82f6; color: white; border: none; cursor: pointer;">Filter</button>
+        <a href="/admin/contests/{{ contest.id }}/submissions" style="padding: 8px 16px; border-radius: 4px; background-color: #334155; color: white; text-decoration: none; display: inline-block;">Clear</a>
+    </form>
+
     <div style="background-color: #1e293b; border-radius: 8px; overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
             <thead>
@@ -25,9 +45,9 @@
             </thead>
             <tbody>
                 {% for sub in submissions %}
-                <tr style="border-top: 1px solid #334155;">
+                <tr style="border-top: 1px solid #334155; cursor: pointer;" onclick="toggleCode('{{ sub.id }}')">
                     <td style="padding: 12px 16px; color: #94a3b8;">
-                        {{ sub.created_at }}
+                        <span data-timestamp="{{ sub.created_at }}"></span>
                     </td>
                     <td style="padding: 12px 16px;">
                         {{ sub.username }}
@@ -55,6 +75,12 @@
                         {{ sub.time }}
                     </td>
                 </tr>
+                <tr id="code-{{ sub.id }}" style="display: none; border-top: 1px solid #334155;">
+                    <td colspan="6" style="padding: 16px; background-color: #0f172a;">
+                        <div style="margin-bottom: 8px; color: #94a3b8; font-weight: 600;">Code:</div>
+                        <pre style="background-color: #1e293b; padding: 12px; border-radius: 4px; overflow-x: auto; margin: 0;"><code style="color: #e5e7eb; font-family: 'Courier New', monospace; font-size: 0.875rem;">{{ sub.code }}</code></pre>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -64,4 +90,23 @@
         Showing most recent 100 submissions
     </div>
 </div>
+
+<script>
+    // Format timestamps
+    document.querySelectorAll('[data-timestamp]').forEach(el => {
+        const timestamp = parseInt(el.getAttribute('data-timestamp'));
+        const date = new Date(timestamp * 1000);
+        el.textContent = date.toLocaleString();
+    });
+
+    // Toggle code visibility
+    function toggleCode(id) {
+        const codeRow = document.getElementById('code-' + id);
+        if (codeRow.style.display === 'none') {
+            codeRow.style.display = 'table-row';
+        } else {
+            codeRow.style.display = 'none';
+        }
+    }
+</script>
 {% endblock %}

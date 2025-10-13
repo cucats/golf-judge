@@ -1,6 +1,6 @@
 # Two Sum
 
-Given a list `a` and a target value `k`, return `1` if there exist two different indices `i` and `j` such that `a[i] + a[j] == k`. Otherwise, return `0`.
+Given a list `a` and a target value `k`, return `True` or `1` if there exist two different indices `i` and `j` such that `a[i] + a[j] == k`. Otherwise, return `False` or `0`.
 
 **Constraints:**
 
