@@ -107,27 +107,8 @@ async fn main() {
 }
 
 fn generate_token() -> String {
+    use base64::Engine;
     use rand::Rng;
     let bytes: [u8; 16] = rand::rng().random();
-    base64_encode(&bytes)
-}
-
-fn base64_encode(bytes: &[u8]) -> String {
-    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut result = String::new();
-    for chunk in bytes.chunks(3) {
-        let b1 = chunk[0];
-        let b2 = chunk.get(1).copied().unwrap_or(0);
-        let b3 = chunk.get(2).copied().unwrap_or(0);
-
-        result.push(CHARSET[(b1 >> 2) as usize] as char);
-        result.push(CHARSET[(((b1 & 0x03) << 4) | (b2 >> 4)) as usize] as char);
-        if chunk.len() > 1 {
-            result.push(CHARSET[(((b2 & 0x0f) << 2) | (b3 >> 6)) as usize] as char);
-        }
-        if chunk.len() > 2 {
-            result.push(CHARSET[(b3 & 0x3f) as usize] as char);
-        }
-    }
-    result
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }

@@ -9,7 +9,9 @@ use serde::Deserialize;
 use tower_sessions::Session;
 
 use crate::{
+    markdown,
     models::{Contest, Problem},
+    problems,
     runner::{CodeRunner, get_free_box_id},
     session,
     state::AppState,
@@ -209,10 +211,10 @@ pub async fn admin_create_contest_page(
     }
 
     // Load problems from filesystem
-    let problem_ids = crate::problems::list_problems().unwrap_or_default();
+    let problem_ids = problems::list_problems().unwrap_or_default();
     let mut problems = Vec::new();
     for id in problem_ids {
-        if let Ok(problem) = crate::problems::load_problem(&id) {
+        if let Ok(problem) = problems::load_problem(&id) {
             problems.push(problem);
         }
     }
@@ -400,7 +402,7 @@ pub async fn admin_manage_contest(
     // Load problem data from filesystem and join with contest_problems
     let mut problems = Vec::new();
     for (problem_id, order) in contest_problems {
-        if let Ok(problem) = crate::problems::load_problem(&problem_id) {
+        if let Ok(problem) = problems::load_problem(&problem_id) {
             problems.push(ProblemWithOrder {
                 id: problem.id,
                 title: problem.title,
@@ -519,7 +521,7 @@ pub async fn admin_submissions(
     let mut submissions = Vec::new();
     for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw
     {
-        let problem_title = crate::problems::load_problem(&problem_id)
+        let problem_title = problems::load_problem(&problem_id)
             .ok()
             .map(|p| p.title)
             .unwrap_or_else(|| problem_id.clone());
@@ -697,7 +699,7 @@ pub async fn contest_problems(
     // Load problem data from filesystem and join with user submissions
     let mut problems = Vec::new();
     for (problem_id, order) in contest_problems {
-        if let Ok(problem) = crate::problems::load_problem(&problem_id) {
+        if let Ok(problem) = problems::load_problem(&problem_id) {
             // Get user's best submission verdict for this problem
             let verdict: Option<String> = sqlx::query_scalar(
                 r#"
@@ -777,13 +779,13 @@ pub async fn contest_problem(
     }
 
     // Load problem from filesystem
-    let problem = match crate::problems::load_problem(&problem_id) {
+    let problem = match problems::load_problem(&problem_id) {
         Ok(p) => p,
         Err(_) => return Redirect::to(&format!("/contest/{contest_id}/problems")).into_response(),
     };
 
     // Render markdown statement with sanitization
-    let statement_html = crate::markdown::render_markdown(&problem.statement);
+    let statement_html = markdown::render_markdown(&problem.statement);
 
     let time_remaining = state.get_time_remaining(&contest);
     let contest_ended = state.is_contest_ended(&contest);
@@ -878,7 +880,7 @@ pub async fn contest_submit(
     let code_length = code.len() as i32;
 
     // Load problem from filesystem
-    let problem = match crate::problems::load_problem(&problem_id) {
+    let problem = match problems::load_problem(&problem_id) {
         Ok(p) => p,
         Err(_) => {
             return axum::Json(SubmitResponse {
@@ -910,11 +912,11 @@ pub async fn contest_submit(
     let language_id = "python3.11_function_f";
 
     // Get time and memory limits
-    let time_limit = crate::problems::get_time_limit();
-    let memory_limit = crate::problems::get_memory_limit();
+    let time_limit = problems::get_time_limit();
+    let memory_limit = problems::get_memory_limit();
 
     // Load custom grader for this problem
-    let custom_grader = match crate::problems::load_custom_grader(&problem_id) {
+    let custom_grader = match problems::load_custom_grader(&problem_id) {
         Ok(grader) => grader,
         Err(_) => {
             return axum::Json(SubmitResponse {
@@ -985,29 +987,10 @@ pub async fn contest_submit(
 }
 
 fn generate_submission_id() -> String {
+    use base64::Engine;
     use rand::Rng;
     let bytes: [u8; 16] = rand::rng().random();
-    base64_encode(&bytes)
-}
-
-fn base64_encode(bytes: &[u8]) -> String {
-    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut result = String::new();
-    for chunk in bytes.chunks(3) {
-        let b1 = chunk[0];
-        let b2 = chunk.get(1).copied().unwrap_or(0);
-        let b3 = chunk.get(2).copied().unwrap_or(0);
-
-        result.push(CHARSET[(b1 >> 2) as usize] as char);
-        result.push(CHARSET[(((b1 & 0x03) << 4) | (b2 >> 4)) as usize] as char);
-        if chunk.len() > 1 {
-            result.push(CHARSET[(((b2 & 0x0f) << 2) | (b3 >> 6)) as usize] as char);
-        }
-        if chunk.len() > 2 {
-            result.push(CHARSET[(b3 & 0x3f) as usize] as char);
-        }
-    }
-    result
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
 
 // Leaderboard
@@ -1487,7 +1470,7 @@ pub async fn api_admin_submissions(
     let mut submissions = Vec::new();
     for (id, username, problem_id, verdict, code_length, time, code, created_at) in submissions_raw
     {
-        let problem_title = crate::problems::load_problem(&problem_id)
+        let problem_title = problems::load_problem(&problem_id)
             .ok()
             .map(|p| p.title)
             .unwrap_or_else(|| problem_id.clone());

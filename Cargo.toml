@@ -7,6 +7,7 @@ edition = "2024"
 ammonia = "4.0.0"
 askama = "0.14.0"
 axum = "0.8.6"
+base64 = "0.22"
 chrono = { version = "0.4.42", features = ["serde"] }
 pulldown-cmark = "0.13.0"
 rand = "0.9.2"
