@@ -319,24 +319,36 @@ impl CodeRunner {
                     .trim()
                     .to_string();
 
+                // Count total test cases from expected output
+                let total_tests = expected_output.lines().count();
+                let passing_tests = if test_num > 0 { test_num - 1 } else { 0 };
+
                 let output = if !test_case_info.is_empty() {
-                    format!("{test_case_info}Error:\n{error_msg}")
+                    format!(
+                        "Passed {}/{} test cases\n\n{test_case_info}Error:\n{error_msg}",
+                        passing_tests, total_tests
+                    )
+                } else if test_num > 0 {
+                    format!(
+                        "Passed {}/{} test cases\n\nRuntime error on test case {}\n\n{error_msg}",
+                        passing_tests, total_tests, test_num
+                    )
                 } else {
-                    error_msg
+                    format!("Passed 0/{} test cases\n\n{error_msg}", total_tests)
                 };
 
                 return Ok(RunResult {
                     verdict: Verdict::RE,
                     time_ms,
                     output: if output.is_empty() {
-                        "Runtime error".to_string()
+                        format!("Passed 0/{} test cases\n\nRuntime error", total_tests)
                     } else {
                         output
                     },
                 });
             }
             "TO" => {
-                // Extract which test case timed out
+                // Extract which test case timed out and count total tests
                 #[allow(unused_assignments)]
                 let mut test_num = 0;
 
@@ -353,10 +365,17 @@ impl CodeRunner {
                     }
                 }
 
+                // Count total test cases from expected output
+                let total_tests = expected_output.lines().count();
+                let passing_tests = if test_num > 0 { test_num - 1 } else { 0 };
+
                 let output = if test_num > 0 {
-                    format!("Time limit exceeded on test case {test_num}")
+                    format!(
+                        "Passed {}/{} test cases\n\nTime limit exceeded on test case {}",
+                        passing_tests, total_tests, test_num
+                    )
                 } else {
-                    "Time limit exceeded".to_string()
+                    format!("Passed 0/{} test cases\n\nTime limit exceeded", total_tests)
                 };
 
                 return Ok(RunResult {
@@ -374,31 +393,31 @@ impl CodeRunner {
         let actual = stdout.trim();
         let expected = expected_output.trim();
 
-        if actual == expected {
-            Ok(RunResult {
-                verdict: Verdict::AC,
-                time_ms,
-                output: String::new(),
-            })
-        } else {
-            // Find which test case failed
-            let actual_lines: Vec<&str> = actual.lines().collect();
-            let expected_lines: Vec<&str> = expected.lines().collect();
+        // Count total test cases and passing test cases
+        let actual_lines: Vec<&str> = actual.lines().collect();
+        let expected_lines: Vec<&str> = expected.lines().collect();
+        let total_tests = expected_lines.len();
 
-            let mut failed_test_num = 0;
-            let mut expected_value = String::new();
-            let mut actual_value = String::new();
+        let mut passing_tests = 0;
+        let mut failed_test_num = 0;
+        let mut expected_value = String::new();
+        let mut actual_value = String::new();
 
-            for (i, (exp, act)) in expected_lines.iter().zip(actual_lines.iter()).enumerate() {
-                if exp != act {
-                    failed_test_num = i + 1;
-                    expected_value = exp.to_string();
-                    actual_value = act.to_string();
-                    break;
-                }
+        for (i, (exp, act)) in expected_lines.iter().zip(actual_lines.iter()).enumerate() {
+            if exp == act {
+                passing_tests += 1;
+            } else if failed_test_num == 0 {
+                // Record the first failure
+                failed_test_num = i + 1;
+                expected_value = exp.to_string();
+                actual_value = act.to_string();
             }
+        }
 
-            if failed_test_num == 0 && actual_lines.len() != expected_lines.len() {
+        // Handle length mismatch
+        if actual_lines.len() != expected_lines.len() {
+            if failed_test_num == 0 {
+                // No mismatch found yet, so the issue is length
                 if actual_lines.len() < expected_lines.len() {
                     failed_test_num = actual_lines.len() + 1;
                     expected_value = expected_lines
@@ -415,7 +434,15 @@ impl CodeRunner {
                         .to_string();
                 }
             }
+        }
 
+        if actual == expected {
+            Ok(RunResult {
+                verdict: Verdict::AC,
+                time_ms,
+                output: format!("Passed {}/{} test cases", total_tests, total_tests),
+            })
+        } else {
             // Extract input info from stderr for the failed test case
             let mut input_info = String::new();
             if !stderr.is_empty() && failed_test_num > 0 {
@@ -434,10 +461,18 @@ impl CodeRunner {
                 verdict: Verdict::WA,
                 time_ms,
                 output: format!(
-                    "Failed on test case {failed_test_num}
+                    "Passed {}/{} test cases
 
-{input_info}Expected: {expected_value}
-Got: {actual_value}"
+Failed on test case {}
+
+{}Expected: {}
+Got: {}",
+                    passing_tests,
+                    total_tests,
+                    failed_test_num,
+                    input_info,
+                    expected_value,
+                    actual_value
                 ),
             })
         }
