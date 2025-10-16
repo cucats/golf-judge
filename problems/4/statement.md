@@ -1,20 +1,22 @@
 # Nested List Wrapping
 
-Given a nested list structure, replace every list with a singleton list
-containing that list. Non-list elements should remain unchanged.
+Wrap every list in another list. Apply this transformation recursively to all nested lists.
+
+- If the input is a list, wrap it: `[...]` → `[[...]]`
+- If the input is not a list (e.g., an integer), return it unchanged
+- Process all nested lists recursively before wrapping
 
 **Constraints:**
 
-- Nesting depth ≤ 5
-- Elements can be integers or lists
-- Apply transformation recursively to all nested lists
+- Nesting depth ≤ 20
+- Elements are integers or lists
 
 **Examples:**
 
-`f([1, 2, 3])` returns `[[1, 2, 3]]`
+`f([1, 2, 3])` → `[[1, 2, 3]]` (wrap the list)
 
-`f([1, 2, [3, 4]])` returns `[[1, 2, [[3, 4]]]]`
+`f([1, 2, [3, 4]])` → `[[1, 2, [[3, 4]]]]` (wrap `[3, 4]`, and wrap the whole list)
 
-`f([1, 2, [3, 4, [5]], [6, 7]])` returns `[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]`
+`f([1, 2, [3, 4, [5]], [6, 7]])` → `[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]` (wrap all nested lists recursively)
 
-`f(5)` returns `5` (non-list elements unchanged)
+`f(5)` → `5` (integers remain unchanged)
