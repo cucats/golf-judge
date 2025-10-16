@@ -154,7 +154,21 @@
         showPrintMargin: false
     });
 
-    editor.session.on('change', updateCounts);
+    // Storage key for this problem
+    const storageKey = 'code_{{ contest.id }}_{{ problem.id }}';
+
+    // Load saved code from localStorage
+    const savedCode = localStorage.getItem(storageKey);
+    if (savedCode) {
+        editor.setValue(savedCode, -1); // -1 moves cursor to start
+    }
+
+    // Save code to localStorage on change
+    editor.session.on('change', () => {
+        updateCounts();
+        localStorage.setItem(storageKey, editor.getValue());
+    });
+
     updateCounts();
 
     // Ctrl+Enter to submit
