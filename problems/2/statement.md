@@ -7,16 +7,19 @@ return any list of integers such that:
 - `len(set(result)) == u` (the list has exactly u unique elements)
 - `sum(result) == s` (the sum of all elements equals s)
 
+**Your output must be a list of integers. Negative integers are allowed.**
+
 **Constraints:**
 
 - 1 ≤ u ≤ n ≤ 20
 - -1000 ≤ s ≤ 1000
-- A valid solution is guaranteed to exist
+- **A valid solution is guaranteed to exist for all test cases.** In other words, you will never be asked to solve an impossible case like n=3, u=1, s=10 (which would require three copies of the same number to sum to 10, meaning each would be 10/3, which is not an integer).
 
-**Example:**
+**Examples:**
 
-`f(5, 3, 10)` could return `[0, 0, 2, 3, 5]` (length 5,
-3 unique values, sum 10)
+(These are not the only valid outputs)
 
-`f(3, 1, 9)` could return `[3, 3, 3]` (length 3, 1
-unique value, sum 9)
+- `f(5, 3, 10)` returns `[1, 1, 2, 3, 3]`
+- `f(3, 1, 9)` returns `[3, 3, 3]`
+- `f(4, 2, 0)` returns `[-1, -1, 1, 1]`
+- `f(6, 3, -12)` returns `[-4, -4, -1, -1, -1, -1]`
