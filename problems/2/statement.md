@@ -13,6 +13,7 @@ return any list of integers such that:
 
 - 1 ≤ u ≤ n ≤ 20
 - -1000 ≤ s ≤ 1000
+
 - **A valid solution is guaranteed to exist for all test cases.** In other words, you will never be asked to solve an impossible case like n=3, u=1, s=10 (which would require three copies of the same number to sum to 10, meaning each would be 10/3, which is not an integer).
 
 **Examples:**
