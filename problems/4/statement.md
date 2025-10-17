@@ -8,7 +8,8 @@ Wrap every list in another list. Apply this transformation recursively to all ne
 
 **Constraints:**
 
-- Nesting depth ≤ 20
+- Maximum nesting depth ≤ 20
+- Total number of integers ≤ 100
 - Elements are integers or lists
 
 **Examples:**
