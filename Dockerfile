@@ -1,4 +1,4 @@
-FROM rust:1.88 AS builder
+FROM rust:1.90 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,7 +10,7 @@ WORKDIR /app
 COPY . .
 RUN cargo build --release
 
-FROM rust:1.88
+FROM rust:1.90
 
 ENV DEBIAN_FRONTEND=noninteractive
 
