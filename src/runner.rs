@@ -325,23 +325,21 @@ impl CodeRunner {
 
                 let output = if !test_case_info.is_empty() {
                     format!(
-                        "Passed {}/{} test cases\n\n{test_case_info}Error:\n{error_msg}",
-                        passing_tests, total_tests
+                        "Passed {passing_tests}/{total_tests} test cases\n\n{test_case_info}Error:\n{error_msg}"
                     )
                 } else if test_num > 0 {
                     format!(
-                        "Passed {}/{} test cases\n\nRuntime error on test case {}\n\n{error_msg}",
-                        passing_tests, total_tests, test_num
+                        "Passed {passing_tests}/{total_tests} test cases\n\nRuntime error on test case {test_num}\n\n{error_msg}"
                     )
                 } else {
-                    format!("Passed 0/{} test cases\n\n{error_msg}", total_tests)
+                    format!("Passed 0/{total_tests} test cases\n\n{error_msg}")
                 };
 
                 return Ok(RunResult {
                     verdict: Verdict::RE,
                     time_ms,
                     output: if output.is_empty() {
-                        format!("Passed 0/{} test cases\n\nRuntime error", total_tests)
+                        format!("Passed 0/{total_tests} test cases\n\nRuntime error")
                     } else {
                         output
                     },
@@ -371,11 +369,10 @@ impl CodeRunner {
 
                 let output = if test_num > 0 {
                     format!(
-                        "Passed {}/{} test cases\n\nTime limit exceeded on test case {}",
-                        passing_tests, total_tests, test_num
+                        "Passed {passing_tests}/{total_tests} test cases\n\nTime limit exceeded on test case {test_num}"
                     )
                 } else {
-                    format!("Passed 0/{} test cases\n\nTime limit exceeded", total_tests)
+                    format!("Passed 0/{total_tests} test cases\n\nTime limit exceeded")
                 };
 
                 return Ok(RunResult {
@@ -415,8 +412,8 @@ impl CodeRunner {
         }
 
         // Handle length mismatch
-        if actual_lines.len() != expected_lines.len() {
-            if failed_test_num == 0 {
+        if actual_lines.len() != expected_lines.len()
+            && failed_test_num == 0 {
                 // No mismatch found yet, so the issue is length
                 if actual_lines.len() < expected_lines.len() {
                     failed_test_num = actual_lines.len() + 1;
@@ -434,13 +431,12 @@ impl CodeRunner {
                         .to_string();
                 }
             }
-        }
 
         if actual == expected {
             Ok(RunResult {
                 verdict: Verdict::AC,
                 time_ms,
-                output: format!("Passed {}/{} test cases", total_tests, total_tests),
+                output: format!("Passed {total_tests}/{total_tests} test cases"),
             })
         } else {
             // Extract input info from stderr for the failed test case
@@ -461,18 +457,12 @@ impl CodeRunner {
                 verdict: Verdict::WA,
                 time_ms,
                 output: format!(
-                    "Passed {}/{} test cases
+                    "Passed {passing_tests}/{total_tests} test cases
 
-Failed on test case {}
+Failed on test case {failed_test_num}
 
-{}Expected: {}
-Got: {}",
-                    passing_tests,
-                    total_tests,
-                    failed_test_num,
-                    input_info,
-                    expected_value,
-                    actual_value
+{input_info}Expected: {expected_value}
+Got: {actual_value}"
                 ),
             })
         }
