@@ -29,7 +29,7 @@
                 <col style="width: 80px;">
                 <col style="width: 100px;">
                 {% for pid in problem_ids %}
-                    <col style="width: 80px;">
+                    <col style="width: 120px;">
                 {% endfor %}
             </colgroup>
             <thead>
@@ -38,8 +38,12 @@
                     <th style="padding: 12px 8px; text-align: left; font-weight: 600;">Username</th>
                     <th style="padding: 12px 8px; text-align: center; font-weight: 600;">Solved</th>
                     <th style="padding: 12px 8px; text-align: right; font-weight: 600;">Total</th>
-                    {% for pid in problem_ids %}
-                        <th style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 0.875rem;">P{{ loop.index }}</th>
+                    {% for (idx, pid) in problem_ids.iter().enumerate() %}
+                        <th style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 0.875rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            <a href="/contest/{{ contest.id }}/problems/{{ pid }}" style="color: inherit; text-decoration: none;" title="{{ problem_titles[idx] }}">
+                                {{ problem_titles[idx] }}
+                            </a>
+                        </th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -106,6 +110,7 @@ async function refreshLeaderboard() {
 
         const data = await response.json();
         const tbody = document.querySelector('tbody');
+        const contestId = url.split('/')[2];
 
         // Build new tbody HTML
         let html = '';

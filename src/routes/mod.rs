@@ -1026,6 +1026,7 @@ struct LeaderboardTemplate {
     username: Option<String>,
     entries: Vec<LeaderboardEntry>,
     problem_ids: Vec<String>,
+    problem_titles: Vec<String>,
 }
 
 pub async fn contest_leaderboard(
@@ -1049,6 +1050,16 @@ pub async fn contest_leaderboard(
     .fetch_all(&state.db)
     .await
     .unwrap_or_default();
+
+    // Load problem titles
+    let problem_titles: Vec<String> = problem_ids
+        .iter()
+        .map(|pid| {
+            problems::load_problem(pid)
+                .map(|p| p.title)
+                .unwrap_or_else(|_| format!("Problem {}", pid))
+        })
+        .collect();
 
     // For each problem, find the best (shortest) accepted solution and count how many have it
     let mut best_solutions: std::collections::HashMap<String, i32> =
@@ -1209,6 +1220,7 @@ pub async fn contest_leaderboard(
         username: user.map(|u| u.username),
         entries,
         problem_ids,
+        problem_titles,
     };
     Html(template.render().unwrap()).into_response()
 }
@@ -1219,6 +1231,7 @@ pub async fn contest_leaderboard(
 struct LeaderboardApiResponse {
     entries: Vec<LeaderboardEntry>,
     problem_ids: Vec<String>,
+    problem_titles: Vec<String>,
 }
 
 pub async fn api_contest_leaderboard(
@@ -1233,6 +1246,16 @@ pub async fn api_contest_leaderboard(
     .fetch_all(&state.db)
     .await
     .unwrap_or_default();
+
+    // Load problem titles
+    let problem_titles: Vec<String> = problem_ids
+        .iter()
+        .map(|pid| {
+            problems::load_problem(pid)
+                .map(|p| p.title)
+                .unwrap_or_else(|_| format!("Problem {}", pid))
+        })
+        .collect();
 
     // For each problem, find the best (shortest) accepted solution and count how many have it
     let mut best_solutions: std::collections::HashMap<String, i32> =
@@ -1386,6 +1409,7 @@ pub async fn api_contest_leaderboard(
     axum::Json(LeaderboardApiResponse {
         entries,
         problem_ids,
+        problem_titles,
     })
     .into_response()
 }

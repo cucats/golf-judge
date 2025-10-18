@@ -53,8 +53,8 @@
     {% endif %}
 
     <h2 style="margin-top: 32px;">Actions</h2>
-    <p><a href="/admin/contests/{{ contest.id }}/submissions">View all submissions</a></p>
-    <p><a href="/contest/{{ contest.id }}/leaderboard">View leaderboard</a></p>
+    <p style="margin-bottom: 12px;"><a href="/admin/contests/{{ contest.id }}/submissions">View all submissions</a></p>
+    <p style="margin-bottom: 12px;"><a href="/contest/{{ contest.id }}/leaderboard">View leaderboard</a></p>
 
     <div style="margin-top: 20px;">
         {% if contest.status == "pending" %}
