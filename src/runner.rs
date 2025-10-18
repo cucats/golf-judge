@@ -356,9 +356,10 @@ impl CodeRunner {
                         && let Some(num_str) = line
                             .strip_prefix("TESTCASE ")
                             .and_then(|s| s.split(':').next())
-                        && let Ok(n) = num_str.trim().parse::<usize>() {
-                            test_num = n;
-                        }
+                        && let Ok(n) = num_str.trim().parse::<usize>()
+                    {
+                        test_num = n;
+                    }
                 }
 
                 // Count total test cases from expected output

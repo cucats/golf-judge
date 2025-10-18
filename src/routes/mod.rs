@@ -344,13 +344,14 @@ pub async fn admin_delete_contest(
 
     // Only allow deleting ended contests
     if let Ok(Some(contest)) = state.get_contest(contest_id).await
-        && contest.status == "ended" {
-            // Delete contest (CASCADE will delete submissions and contest_problems)
-            let _ = sqlx::query("DELETE FROM contests WHERE id = $1")
-                .bind(contest_id)
-                .execute(&state.db)
-                .await;
-        }
+        && contest.status == "ended"
+    {
+        // Delete contest (CASCADE will delete submissions and contest_problems)
+        let _ = sqlx::query("DELETE FROM contests WHERE id = $1")
+            .bind(contest_id)
+            .execute(&state.db)
+            .await;
+    }
 
     Redirect::to("/admin")
 }
