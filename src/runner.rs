@@ -412,25 +412,24 @@ impl CodeRunner {
         }
 
         // Handle length mismatch
-        if actual_lines.len() != expected_lines.len()
-            && failed_test_num == 0 {
-                // No mismatch found yet, so the issue is length
-                if actual_lines.len() < expected_lines.len() {
-                    failed_test_num = actual_lines.len() + 1;
-                    expected_value = expected_lines
-                        .get(actual_lines.len())
-                        .unwrap_or(&"")
-                        .to_string();
-                    actual_value = "(no output)".to_string();
-                } else {
-                    failed_test_num = expected_lines.len() + 1;
-                    expected_value = "(no more output expected)".to_string();
-                    actual_value = actual_lines
-                        .get(expected_lines.len())
-                        .unwrap_or(&"")
-                        .to_string();
-                }
+        if actual_lines.len() != expected_lines.len() && failed_test_num == 0 {
+            // No mismatch found yet, so the issue is length
+            if actual_lines.len() < expected_lines.len() {
+                failed_test_num = actual_lines.len() + 1;
+                expected_value = expected_lines
+                    .get(actual_lines.len())
+                    .unwrap_or(&"")
+                    .to_string();
+                actual_value = "(no output)".to_string();
+            } else {
+                failed_test_num = expected_lines.len() + 1;
+                expected_value = "(no more output expected)".to_string();
+                actual_value = actual_lines
+                    .get(expected_lines.len())
+                    .unwrap_or(&"")
+                    .to_string();
             }
+        }
 
         if actual == expected {
             Ok(RunResult {
