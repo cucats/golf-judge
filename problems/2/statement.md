@@ -1,26 +1,27 @@
-# List Generation
+# Balanced Brackets
 
-Given three integers `n`, `u`, and `s`,
-return any list of integers `a` such that:
+Given a string `s` containing only bracket characters `()`, `[]`, and `{}`, determine if the brackets are balanced.
+Return `"BALANCED"` if balanced, and `"IMBALANCED"` if not balanced.
 
-- `len(a) == n` (the list has exactly n elements)
-- `len(set(a)) == u` (the list has exactly u unique elements)
-- `sum(a) == s` (the sum of all elements equals s)
+**Definition of balanced:**
 
-Your output must be a list of integers. Negative integers are allowed in your output.
+- Every opening bracket has a matching closing bracket of the same type
+- Brackets are properly nested (correctly ordered and paired)
+- Different bracket types must match: `(` with `)`, `[` with `]`, `{` with `}`
 
 **Constraints:**
 
-- 1 ≤ u ≤ n ≤ 20
-- -1000 ≤ s ≤ 1000\
-
-- **A valid solution is guaranteed to exist for all test cases.** For example, you will never be asked to solve an impossible case like n=3, u=1, s=10 (which would require three copies of the same number to sum to 10, meaning each would be 10/3, which is not an integer).
+- 0 ≤ len(s) ≤ 100
+- String contains only `(`, `)`, `[`, `]`, `{`, `}` characters
 
 **Examples:**
 
-(These are not the only valid outputs)
+`f("()[]{}")` returns `"BALANCED"`
 
-- `f(5, 3, 10)` returns `[1, 1, 2, 3, 3]`
-- `f(3, 1, 9)` returns `[3, 3, 3]`
-- `f(4, 2, 0)` returns `[-1, -1, 1, 1]`
-- `f(6, 3, -12)` returns `[-4, -4, -1, -1, -1, -1]`
+`f("([{}])")` returns `"BALANCED"`
+
+`f("([)]")` returns `"IMBALANCED"` - brackets interleaved incorrectly
+
+`f("()}")` returns `"IMBALANCED"` - missing opening bracket
+
+`f("")` returns `"BALANCED"`

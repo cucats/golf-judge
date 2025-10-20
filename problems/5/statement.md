@@ -1,26 +1,26 @@
-# Balanced Parentheses
+# List Generation
 
-Given a string `s` containing only the characters `(` and `)`, determine if the parentheses are balanced.
-Return `"balanced"` if balanced, and `"imbalanced"` if not balanced.
+Given three integers `n`, `u`, and `s`,
+return any list of integers `a` such that:
 
-**Definition of balanced:**
+- `len(a) == n` (the list has exactly n elements)
+- `len(set(a)) == u` (the list has exactly u unique elements)
+- `sum(a) == s` (the sum of all elements equals s)
 
-- Every opening parenthesis `(` has a matching closing parenthesis `)`
-- Parentheses are properly nested (no closing before opening)
+Your output must be a list of integers. Negative integers are allowed in your output.
 
 **Constraints:**
 
-- 0 ≤ len(s) ≤ 100
-- String contains only `(` and `)` characters
+- 1 ≤ u ≤ n ≤ 20
+- -1000 ≤ s ≤ 1000\
+
+- **A valid solution is guaranteed to exist for all test cases.** For example, you will never be asked to solve an impossible case like n=3, u=1, s=10 (which would require three copies of the same number to sum to 10, meaning each would be 10/3, which is not an integer).
 
 **Examples:**
 
-`f("((()()))()()")` returns `"balanced"`
+(These are not the only valid outputs)
 
-`f("((()())()()")` returns `"imbalanced"`
-
-`f(")(")` returns `imbalanced`
-
-`f("()()")` returns `balanced`
-
-`f("")` returns `balanced`
+- `f(5, 3, 10)` returns `[1, 1, 2, 3, 3]`
+- `f(3, 1, 9)` returns `[3, 3, 3]`
+- `f(4, 2, 0)` returns `[-1, -1, 1, 1]`
+- `f(6, 3, -12)` returns `[-4, -4, -1, -1, -1, -1]`

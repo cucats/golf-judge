@@ -1,4 +1,4 @@
-# Matrix Rotation
+# Cartography
 
 You're a navigator studying an old map. The map is oriented incorrectly for your current heading. Rotate it `n` quarter-turns clockwise to align it with your direction of travel.
 

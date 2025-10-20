@@ -1,22 +1,20 @@
-# Nested List Wrapping
+# Alphabet Soup
 
-You are given a nested list structure. At all depths, wrap every list in an additional outer list.
+A chef is evaluating alphabet soup orders. A bowl of soup is acceptable only if the letter arrangement follows proper "alphabetical soup protocol": the letters must have been added to the bowl in alphabetical order (`'a'`, then `'b'`, then `'c'`, etc.), with each letter placed either at the left or right end of the current arrangement.
 
-- If the input is a list, wrap it: `[...]` → `[[...]]`
-- If the input is not a list (e.g., an integer), return it unchanged
+Given a string `s` representing the letters in a bowl, determine if it follows alphabetical soup protocol. Return `"slurp"` if it's acceptable, or `"yuck"` if it violates the protocol.
 
 **Constraints:**
 
-- Maximum nesting depth ≤ 20
-- Total number of integers ≤ 100
-- Elements are integers or lists
+- 1 ≤ len(s) ≤ 26
+- String consists of lowercase letters only, from `'a'` to `'z'`
 
 **Examples:**
 
-`f([1, 2, 3])` returns `[[1, 2, 3]]`
+`f("bac")` returns `"slurp"` - built as: "" → "a" → "ba" → "bac"
 
-`f([1, 2, [3, 4]])` returns `[[1, 2, [[3, 4]]]]`
+`f("ihfcbadeg")` returns `"slurp"`
 
-`f([1, 2, [3, 4, [5]], [6, 7]])` returns `[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]`
+`f("ca")` returns `"yuck"` - 'c' appears before 'b' was added
 
-`f(5)` returns `5`
+`f("aa")` returns `"yuck"` - duplicate letters not allowed
