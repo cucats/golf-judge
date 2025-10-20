@@ -7,7 +7,7 @@ Given a string `s` representing the letters in a bowl, determine if it follows a
 **Constraints:**
 
 - 1 ≤ len(s) ≤ 26
-- String consists of lowercase letters only, from `'a'` to `'z'`
+- The string consists of lowercase letters only, from `'a'` to `'z'`
 
 **Examples:**
 

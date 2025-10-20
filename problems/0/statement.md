@@ -8,6 +8,7 @@ You are given a map `m`, represented as a 2D list of integers, and an integer `n
 
 - 1 ≤ rows, cols ≤ 10
 - 0 ≤ n ≤ 100
+- For this problem, you can return lists or tuples.
 
 **Example:**
 
