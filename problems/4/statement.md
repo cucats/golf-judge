@@ -1,10 +1,9 @@
 # Nested List Wrapping
 
-Wrap every list in another list. Apply this transformation to all nested lists.
+You are given a nested list structure. At all depths, wrap every list in an additional outer list.
 
 - If the input is a list, wrap it: `[...]` → `[[...]]`
 - If the input is not a list (e.g., an integer), return it unchanged
-- Process all nested lists recursively before wrapping
 
 **Constraints:**
 
@@ -14,10 +13,10 @@ Wrap every list in another list. Apply this transformation to all nested lists.
 
 **Examples:**
 
-`f([1, 2, 3])` → `[[1, 2, 3]]` (wrap the list)
+`f([1, 2, 3])` returns `[[1, 2, 3]]`
 
-`f([1, 2, [3, 4]])` → `[[1, 2, [[3, 4]]]]` (wrap `[3, 4]`, and wrap the whole list)
+`f([1, 2, [3, 4]])` returns `[[1, 2, [[3, 4]]]]`
 
-`f([1, 2, [3, 4, [5]], [6, 7]])` → `[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]` (wrap all nested lists recursively)
+`f([1, 2, [3, 4, [5]], [6, 7]])` returns `[[1, 2, [[3, 4, [[5]]]], [[6, 7]]]]`
 
-`f(5)` → `5` (integers remain unchanged)
+`f(5)` returns `5`
