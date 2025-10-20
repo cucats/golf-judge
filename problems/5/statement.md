@@ -1,7 +1,7 @@
 # Balanced Parentheses
 
 Given a string `s` containing only the characters `(` and `)`, determine if the parentheses are balanced.
-Return `True` or `1` if balanced, and `False` or `0` if not balanced.
+Return `"balanced"` if balanced, and `"imbalanced"` if not balanced.
 
 **Definition of balanced:**
 
@@ -15,12 +15,12 @@ Return `True` or `1` if balanced, and `False` or `0` if not balanced.
 
 **Examples:**
 
-`f("((()()))()()")` returns `1` (balanced)
+`f("((()()))()()")` returns `"balanced"`
 
-`f("((()())()()")` returns `0` (not balanced - missing closing)
+`f("((()())()()")` returns `"imbalanced"`
 
-`f(")(")` returns `0` (not balanced - closes before opens)
+`f(")(")` returns `imbalanced`
 
-`f("()()")` returns `1` (balanced)
+`f("()()")` returns `balanced`
 
-`f("")` returns `1` (the empty string is balanced)
+`f("")` returns `balanced`
