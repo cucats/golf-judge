@@ -1,6 +1,6 @@
 # Nested List Wrapping
 
-Wrap every list in another list. Apply this transformation recursively to all nested lists.
+Wrap every list in another list. Apply this transformation to all nested lists.
 
 - If the input is a list, wrap it: `[...]` → `[[...]]`
 - If the input is not a list (e.g., an integer), return it unchanged

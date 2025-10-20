@@ -15,12 +15,12 @@ Return `True` or `1` if balanced, and `False` or `0` if not balanced.
 
 **Examples:**
 
-`f("((()()))()()")` → `1` (balanced)
+`f("((()()))()()")` returns `1` (balanced)
 
-`f("((()())()()")` → `0` (not balanced - missing closing)
+`f("((()())()()")` returns `0` (not balanced - missing closing)
 
-`f(")(")` → `0` (not balanced - closes before opens)
+`f(")(")` returns `0` (not balanced - closes before opens)
 
-`f("()()")` → `1` (balanced)
+`f("()()")` returns `1` (balanced)
 
-`f("")` → `1` (empty string is balanced)
+`f("")` returns `1` (the empty string is balanced)
