@@ -859,7 +859,7 @@ pub async fn contest_submit(
         .into_response();
     }
 
-    let code = form.code.trim();
+    let code = &form.code;
 
     // Check code length limit (10KB max)
     const MAX_CODE_LENGTH: usize = 10240; // 10KB
