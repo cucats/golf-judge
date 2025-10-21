@@ -305,8 +305,6 @@ impl CodeRunner {
                                 );
                             }
                         }
-
-                        break;
                     }
                 }
 
