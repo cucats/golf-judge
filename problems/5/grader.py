@@ -14,4 +14,4 @@ for __i in range(__t):
     __import__('sys').stderr.write(f"TESTCASE {__i + 1}: {__n} {__u} {__s}\n")
     __out = f(__n, __u, __s)
     __out = normalize(__out)
-    print(len(__out), len(set(__out)), sum(__out))
+    print(f"len(a)={len(__out)} len(set(a))={len(set(__out))} sum(a)={sum(__out)}")
