@@ -6,7 +6,7 @@ services:
       DATABASE_URL: postgresql://user:password@db/codegolf
     privileged: true
     networks:
-      - default
+      - golf
       - proxy
 
   db:
@@ -23,11 +23,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - golf
 
 volumes:
   db_data:
 
-
 networks:
+  golf:
   proxy:
     external: true
