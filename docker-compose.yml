@@ -3,26 +3,20 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://user:password@db/codegolf
-    privileged: true
+      DATABASE_URL: postgres://user:password@db:5432/codegolf
     networks:
       - golf
       - proxy
 
   db:
     image: postgres:18
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: codegolf
     volumes:
       - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d codegolf" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - golf
 
