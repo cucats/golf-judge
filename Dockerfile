@@ -17,12 +17,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     git \
     python3 \
+    pkg-config \
     libcap-dev \
+    libseccomp-dev \
     libsystemd-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install isolate (sandboxing tool for code execution)
-RUN git clone https://github.com/ioi/isolate.git /tmp/isolate && \
+RUN git clone --depth 1 --branch v2.7 https://github.com/ioi/isolate.git /tmp/isolate && \
     cd /tmp/isolate && \
     make isolate && \
     make install && \
