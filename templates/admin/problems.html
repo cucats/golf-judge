@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Problem Bank - Admin{% endblock %}
+
+{% block nav_extra %}
+    <a href="/admin">Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="btn-row" style="justify-content: space-between; margin-bottom: 20px;">
+        <h1 style="margin-bottom: 0;">Problem Bank</h1>
+        <a href="/admin/problems/new"><button>New problem</button></a>
+    </div>
+
+    {% if let Some(err) = error %}
+        <p class="error">{{ err }}</p>
+    {% endif %}
+
+    {% if problems.is_empty() %}
+        <div class="card">
+            <p>No problems yet. <a href="/admin/problems/new">Create one</a></p>
+        </div>
+    {% else %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Used in</th>
+                    <th>Submissions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in problems %}
+                    <tr>
+                        <td>{{ p.id }}</td>
+                        <td><a href="/admin/problems/{{ p.id }}">{{ p.title }}</a></td>
+                        <td>{{ p.contest_count }} contest{% if p.contest_count != 1 %}s{% endif %}</td>
+                        <td>{{ p.submission_count }}</td>
+                        <td>
+                            <div class="btn-row">
+                                <form method="POST" action="/admin/problems/{{ p.id }}/duplicate">
+                                    <button type="submit" class="secondary">Duplicate</button>
+                                </form>
+                                <form method="POST" action="/admin/problems/{{ p.id }}/delete" onsubmit="return confirm('Delete this problem?');">
+                                    <button type="submit" class="danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

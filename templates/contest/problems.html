@@ -2,37 +2,44 @@
 
 {% block title %}Problems - {{ contest.name }}{% endblock %}
 
-{% block content %}
-<div class="nav">
-    <div>
-        <strong>{{ contest.name }}</strong>
-    </div>
-    <div>
-        <a href="/">Home</a>
-        <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
-        <span>{{ username }}</span>
-        {% if let Some(remaining) = time_remaining %}
-            <span id="timer" style="color: #fbbf24; font-weight: bold;" data-remaining="{{ remaining }}">{{ remaining / 60 }}:{% if remaining % 60 < 10 %}0{% endif %}{{ remaining % 60 }}</span>
-            <script>
-                let remaining = parseInt(document.getElementById('timer').getAttribute('data-remaining'));
-                setInterval(() => {
+{% block nav_extra %}
+    <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
+    {% if let Some(remaining) = time_remaining %}
+        <span id="timer" data-remaining="{{ remaining }}" style="color: #fbbf24; font-weight: bold;"></span>
+        <script>
+            (() => {
+                const el = document.getElementById('timer');
+                let remaining = parseInt(el.getAttribute('data-remaining'));
+                function render() {
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    el.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                }
+                render();
+                const interval = setInterval(() => {
                     if (remaining > 0) {
                         remaining--;
-                        const minutes = Math.floor(remaining / 60);
-                        const seconds = remaining % 60;
-                        document.getElementById('timer').textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                        render();
                         if (remaining === 0) {
+                            clearInterval(interval);
                             location.reload();
                         }
                     }
                 }, 1000);
-            </script>
-        {% endif %}
-    </div>
-</div>
+            })();
+        </script>
+    {% endif %}
+{% endblock %}
 
+{% block content %}
 <div class="container">
     <h1>Problems</h1>
+
+    {% if contest.is_pending() %}
+        <p class="notice">Preview &mdash; contest has not started</p>
+    {% else if !accepting %}
+        <p class="notice">This contest has ended &mdash; problems are read-only.</p>
+    {% endif %}
 
     {% if problems.is_empty() %}
         <div class="card">
@@ -48,15 +55,17 @@
                 </tr>
             </thead>
             <tbody>
-                {% for problem in problems %}
+                {% for p in problems %}
                     <tr>
-                        <td>{{ problem.order + 1 }}</td>
-                        <td><a href="/contest/{{ contest.id }}/problems/{{ problem.id }}">{{ problem.title }}</a></td>
+                        <td>{{ p.label }}</td>
+                        <td><a href="/contest/{{ contest.id }}/problems/{{ p.id }}">{{ p.title }}</a></td>
                         <td>
-                            {% if let Some(verdict) = problem.verdict %}
-                                <span class="badge {{ verdict.to_lowercase() }}">{{ verdict }}</span>
+                            {% if p.solved %}
+                                <span style="color: #10b981; font-weight: 700;">&check; {% if let Some(b) = p.best_bytes %}{{ b }}{% endif %} bytes</span>
+                            {% else if p.attempts > 0 %}
+                                <span class="muted">{{ p.attempts }} attempt{% if p.attempts != 1 %}s{% endif %}</span>
                             {% else %}
-                                <span>—</span>
+                                <span class="muted">&mdash;</span>
                             {% endif %}
                         </td>
                     </tr>

@@ -7,6 +7,25 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <div class="nav">
+        <div>
+            <a href="/"><strong>CUCaTS Code Golf</strong></a>
+        </div>
+        <div class="nav-user">
+            {% block nav_extra %}{% endblock %}
+            {% if viewer.is_admin %}
+                <a href="/admin">Admin</a>
+            {% endif %}
+            {% if let Some(user) = viewer.username %}
+                <span class="nav-username">{{ user }}</span>
+                <form method="POST" action="/logout" style="display:inline">
+                    <button type="submit" class="link-btn">Logout</button>
+                </form>
+            {% else %}
+                <a href="/login">Login</a>
+            {% endif %}
+        </div>
+    </div>
     {% block content %}{% endblock %}
 </body>
 </html>

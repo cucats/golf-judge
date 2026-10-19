@@ -1,4 +1,4 @@
-mod languages;
+mod leaderboard;
 mod markdown;
 mod models;
 mod problems;
@@ -11,6 +11,7 @@ use axum::{
     Router,
     routing::{get, post},
 };
+use routes::{admin, auth, contest};
 use sqlx::postgres::PgPoolOptions;
 use state::AppState;
 use std::env;
@@ -18,91 +19,114 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    // Generate admin token
-    let admin_token = generate_token();
-    println!("https://golf.cucats.org/auth/{admin_token}");
+    let admin_password = env::var("ADMIN_PASSWORD")
+        .ok()
+        .filter(|p| !p.is_empty())
+        .unwrap_or_else(|| {
+            let password = generate_token();
+            println!("ADMIN_PASSWORD not set; generated admin password: {password}");
+            password
+        });
 
-    // Connect to database
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(10)
         .connect(&database_url)
         .await
         .expect("Failed to connect to database");
 
-    // Run migrations
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
 
-    // Initialize state
-    let state = AppState::new(pool, admin_token);
+    let problems_dir = env::var("PROBLEMS_DIR").unwrap_or_else(|_| "problems".to_string());
+    match problems::import_from_filesystem(&pool, problems_dir.as_ref()).await {
+        Ok(0) => {}
+        Ok(n) => println!("Imported {n} problem(s) from {problems_dir}/"),
+        Err(e) => eprintln!("Problem import failed: {e}"),
+    }
 
-    // Start background task to auto-end expired contests
+    let state = AppState {
+        db: pool,
+        admin_password,
+    };
+
     let state_clone = state.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
         loop {
             interval.tick().await;
-            let _ = state_clone.auto_end_expired_contests().await;
+            if let Err(e) = state_clone.auto_end_expired_contests().await {
+                eprintln!("auto-end failed: {e}");
+            }
         }
     });
 
-    // Build router
     let app = Router::new()
-        .route("/", get(routes::index))
-        .route("/login", get(routes::login_page).post(routes::login_post))
-        .route("/auth/{token}", get(routes::admin_auth))
-        .route("/admin", get(routes::admin_dashboard))
+        .route("/", get(contest::index))
+        .route("/login", get(auth::login_page).post(auth::login_post))
+        .route("/logout", post(auth::logout))
         .route(
-            "/admin/contests/new",
-            get(routes::admin_create_contest_page),
+            "/admin/login",
+            get(auth::admin_login_page).post(auth::admin_login_post),
         )
-        .route("/admin/contests", post(routes::admin_create_contest))
-        .route("/admin/contests/{id}", get(routes::admin_manage_contest))
+        .route("/admin", get(admin::dashboard))
+        .route("/admin/contests", post(admin::create_contest))
+        .route("/admin/contests/new", get(admin::new_contest_page))
         .route(
-            "/admin/contests/{id}/start",
-            post(routes::admin_start_contest),
+            "/admin/contests/{id}",
+            get(admin::manage_contest).post(admin::update_contest),
         )
-        .route("/admin/contests/{id}/end", post(routes::admin_end_contest))
+        .route("/admin/contests/{id}/start", post(admin::start_contest))
+        .route("/admin/contests/{id}/end", post(admin::end_contest))
+        .route("/admin/contests/{id}/delete", post(admin::delete_contest))
+        .route("/admin/contests/{id}/submissions", get(admin::submissions))
         .route(
-            "/admin/contests/{id}/delete",
-            post(routes::admin_delete_contest),
+            "/admin/problems",
+            get(admin::problems_page).post(admin::create_problem),
+        )
+        .route("/admin/problems/new", get(admin::new_problem_page))
+        .route(
+            "/admin/problems/{id}",
+            get(admin::edit_problem_page).post(admin::update_problem),
         )
         .route(
-            "/admin/contests/{id}/submissions",
-            get(routes::admin_submissions),
+            "/admin/problems/{id}/duplicate",
+            post(admin::duplicate_problem),
         )
-        .route("/contest/{id}/join", get(routes::contest_join))
-        .route("/contest/{id}/waiting", get(routes::contest_waiting))
-        .route("/contest/{id}/problems", get(routes::contest_problems))
-        .route("/contest/{id}/problems/{pid}", get(routes::contest_problem))
+        .route("/admin/problems/{id}/delete", post(admin::delete_problem))
+        .route("/admin/problems/{id}/test", post(admin::test_problem))
+        .route("/contest/{id}", get(contest::contest_join))
+        .route("/contest/{id}/join", get(contest::contest_join))
+        .route("/contest/{id}/waiting", get(contest::contest_waiting))
+        .route("/contest/{id}/problems", get(contest::contest_problems))
+        .route(
+            "/contest/{id}/problems/{pid}",
+            get(contest::contest_problem),
+        )
         .route(
             "/contest/{id}/problems/{pid}/submit",
-            post(routes::contest_submit),
+            post(contest::contest_submit),
         )
         .route(
             "/contest/{id}/leaderboard",
-            get(routes::contest_leaderboard),
+            get(contest::contest_leaderboard),
         )
-        // API routes for JSON data
         .route(
             "/api/contest/{id}/leaderboard",
-            get(routes::api_contest_leaderboard),
+            get(contest::api_contest_leaderboard),
         )
         .route(
             "/api/admin/contests/{id}/submissions",
-            get(routes::api_admin_submissions),
+            get(admin::api_submissions),
         )
         .nest_service("/static", ServeDir::new("static"))
         .layer(session::session_layer())
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-
     println!("Server running on http://0.0.0.0:3000");
-
     axum::serve(listener, app).await.unwrap();
 }
 

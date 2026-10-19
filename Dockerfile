@@ -30,6 +30,11 @@ RUN git clone --depth 1 --branch v2.7 https://github.com/ioi/isolate.git /tmp/is
     make install && \
     rm -rf /tmp/isolate
 
+# isolate 2.x runs each box under a uid/gid taken from the isolate user's subid range
+RUN useradd --system --no-create-home isolate && \
+    echo "isolate:100000:65536" >> /etc/subuid && \
+    echo "isolate:100000:65536" >> /etc/subgid
+
 # Set up isolate directories
 RUN mkdir -p /var/local/lib/isolate && \
     chmod 777 /var/local/lib/isolate

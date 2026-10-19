@@ -2,21 +2,14 @@
 
 {% block title %}Admin Dashboard - CUCaTS Code Golf{% endblock %}
 
-{% block content %}
-<div class="nav">
-    <div>
-        <strong>Admin Panel</strong>
-    </div>
-    <div>
-        <a href="/">Home</a>
-        <a href="/admin/contests/new">Create Contest</a>
-    </div>
-</div>
+{% block nav_extra %}
+    <a href="/admin/problems">Problem bank ({{ problem_bank_size }})</a>
+    <a href="/admin/contests/new">New contest</a>
+{% endblock %}
 
+{% block content %}
 <div class="container">
     <h1>Admin Dashboard</h1>
-
-    <h2>All Contests</h2>
 
     {% if contests.is_empty() %}
         <div class="card">
@@ -30,33 +23,38 @@
                     <th>Status</th>
                     <th>Duration</th>
                     <th>Problems</th>
+                    <th>Participants</th>
+                    <th>Submissions</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for contest in contests %}
+                {% for row in contests %}
                     <tr>
-                        <td>{{ contest.name }}</td>
-                        <td><span class="badge {{ contest.status }}">{{ contest.status }}</span></td>
-                        <td>{{ contest.duration / 60 }} min</td>
-                        <td>{{ contest.problem_count }}</td>
+                        <td><a href="/admin/contests/{{ row.contest.id }}">{{ row.contest.name }}</a></td>
+                        <td><span class="badge {{ row.contest.status }}">{{ row.contest.status }}</span></td>
+                        <td>{{ row.contest.duration_minutes() }} min</td>
+                        <td>{{ row.problem_count }}</td>
+                        <td>{{ row.participant_count }}</td>
+                        <td>{{ row.submission_count }}</td>
                         <td>
-                            <a href="/admin/contests/{{ contest.id }}">Manage</a>
-                            {% if contest.status == "pending" %}
-                                <form method="POST" action="/admin/contests/{{ contest.id }}/start" style="display: inline;">
-                                    <button type="submit" class="success">Start</button>
-                                </form>
-                            {% endif %}
-                            {% if contest.status == "active" %}
-                                <form method="POST" action="/admin/contests/{{ contest.id }}/end" style="display: inline;">
-                                    <button type="submit" class="danger">End</button>
-                                </form>
-                            {% endif %}
-                            {% if contest.status == "ended" %}
-                                <form method="POST" action="/admin/contests/{{ contest.id }}/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this contest? This will permanently remove all submissions and data.');">
-                                    <button type="submit" class="danger">Delete</button>
-                                </form>
-                            {% endif %}
+                            <div class="btn-row">
+                                {% if row.contest.is_pending() %}
+                                    <form method="POST" action="/admin/contests/{{ row.contest.id }}/start">
+                                        <button type="submit" class="success">Start</button>
+                                    </form>
+                                {% endif %}
+                                {% if row.contest.status == "active" %}
+                                    <form method="POST" action="/admin/contests/{{ row.contest.id }}/end" onsubmit="return confirm('End this contest now?');">
+                                        <button type="submit" class="danger">End</button>
+                                    </form>
+                                {% endif %}
+                                {% if row.contest.status != "active" %}
+                                    <form method="POST" action="/admin/contests/{{ row.contest.id }}/delete" onsubmit="return confirm('Delete this contest? This permanently removes all its submissions and data.');">
+                                        <button type="submit" class="danger">Delete</button>
+                                    </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}

@@ -6,20 +6,23 @@
 <div class="flex flex-col items-center justify-center min-h-screen">
     <h1>CUCaTS Code Golf</h1>
 
-    <form method="POST" class="flex flex-col gap-4 w-full max-w-md">
+    <form method="POST" action="/login" class="flex flex-col gap-4 w-full max-w-md">
         <input
             type="text"
             name="username"
+            value="{{ username }}"
+            maxlength="32"
             placeholder="Enter a username to get started"
             required
             autofocus
         />
+        <input type="hidden" name="next" value="{{ next }}">
 
         <button type="submit">Join</button>
     </form>
 
     {% if let Some(err) = error %}
-        <p style="color: #ef4444; margin-top: 16px;">{{ err }}</p>
+        <p class="error" style="margin-top: 16px;">{{ err }}</p>
     {% endif %}
 </div>
 {% endblock %}

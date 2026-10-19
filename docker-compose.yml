@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://user:password@db:5432/codegolf
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     networks:
       - golf
       - proxy

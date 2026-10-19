@@ -1,26 +1,6 @@
-#![allow(dead_code)]
+use serde::Serialize;
 
-use serde::{Deserialize, Serialize};
-
-// Database models
-
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct User {
-    pub username: String,
-    pub is_admin: bool,
-    pub created_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Problem {
-    pub id: String, // Filesystem identifier like "0", "1", "2"
-    pub title: String,
-    pub statement: String, // Markdown content
-    pub test_input: String,
-    pub test_output: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct Contest {
     pub id: i32,
     pub name: String,
@@ -30,58 +10,95 @@ pub struct Contest {
     pub created_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+impl Contest {
+    pub fn is_pending(&self) -> bool {
+        self.status == "pending"
+    }
+
+    pub fn is_ended(&self) -> bool {
+        self.status == "ended" || self.time_remaining() == Some(0)
+    }
+
+    pub fn is_accepting_submissions(&self) -> bool {
+        self.status == "active" && !self.is_ended()
+    }
+
+    pub fn time_remaining(&self) -> Option<i64> {
+        let start_time = self.start_time?;
+        let now = chrono::Utc::now().timestamp();
+        Some((start_time + self.duration as i64 - now).max(0))
+    }
+
+    pub fn duration_minutes(&self) -> i32 {
+        self.duration / 60
+    }
+}
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct Problem {
+    pub id: i32,
+    pub title: String,
+    pub statement: String,
+    pub test_input: String,
+    pub test_output: String,
+    pub grader: String,
+    pub time_limit_ms: i32,
+    pub memory_limit_kb: i32,
+}
+
+impl Problem {
+    pub fn memory_limit_mb(&self) -> i32 {
+        self.memory_limit_kb / 1024
+    }
+
+    pub fn test_count(&self) -> usize {
+        self.test_output.trim().lines().count()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct ProblemSummary {
+    pub id: i32,
+    pub title: String,
+    pub contest_count: i64,
+    pub submission_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct ContestProblem {
-    pub contest_id: i32,
-    pub problem_id: String, // Filesystem identifier
+    pub id: i32,
+    pub title: String,
     pub problem_order: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Submission {
-    pub id: String,
-    pub username: String,
-    pub contest_id: i32,
-    pub problem_id: String, // Filesystem identifier
-    pub verdict: String,
-    pub code_length: i32,
-    pub time: i32,
-    pub code: String,
-    pub created_at: i64,
+impl ContestProblem {
+    pub fn label(&self) -> String {
+        order_label(self.problem_order)
+    }
 }
 
-// View models for API responses
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProblemWithStatement {
-    pub id: String, // Filesystem identifier
-    pub title: String,
-    pub statement: String, // Rendered markdown
-    pub order: i32,
+/// 0 -> "A", 1 -> "B", ..., 25 -> "Z", 26 -> "AA"
+pub fn order_label(order: i32) -> String {
+    let mut n = order.max(0) as u32;
+    let mut label = String::new();
+    loop {
+        label.insert(0, char::from(b'A' + (n % 26) as u8));
+        if n < 26 {
+            return label;
+        }
+        n = n / 26 - 1;
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContestWithProblems {
-    pub id: i32,
-    pub name: String,
-    pub duration: i32,
-    pub start_time: Option<i64>,
-    pub status: String,
-    pub problems: Vec<ProblemWithStatement>,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LeaderboardEntry {
-    pub username: String,
-    pub solved: i32,
-    pub score: i32,
-    pub golds: Vec<i32>,
-    pub diamonds: Vec<i32>,
-    pub problem_scores: Vec<ProblemScore>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProblemScore {
-    pub score: i32,
-    pub verdict: String,
+    #[test]
+    fn order_labels() {
+        assert_eq!(order_label(0), "A");
+        assert_eq!(order_label(25), "Z");
+        assert_eq!(order_label(26), "AA");
+        assert_eq!(order_label(27), "AB");
+    }
 }

@@ -1,56 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}{{ problem.title }} - {{ contest.name }}{% endblock %}
+{% block title %}{{ label }}. {{ title }} - {{ contest.name }}{% endblock %}
+
+{% block nav_extra %}
+    <a href="/contest/{{ contest.id }}/problems">Problems</a>
+    <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
+    {% if let Some(remaining) = time_remaining %}
+        <span id="timer" data-remaining="{{ remaining }}" style="color: #fbbf24; font-weight: bold;"></span>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
 
-<div class="nav">
-    <div>
-        <strong>{{ contest.name }}</strong>
-    </div>
-    <div>
-        <a href="/">Home</a>
-        <a href="/contest/{{ contest.id }}/problems">Problems</a>
-        <a href="/contest/{{ contest.id }}/leaderboard">Leaderboard</a>
-        <span>{{ username }}</span>
-        {% if let Some(remaining) = time_remaining %}
-            <span id="timer" style="color: #fbbf24; font-weight: bold;" data-remaining="{{ remaining }}">{{ remaining / 60 }}:{% if remaining % 60 < 10 %}0{% endif %}{{ remaining % 60 }}</span>
-        {% endif %}
-    </div>
-</div>
-
 {% if let Some(remaining) = time_remaining %}
 <script>
-    let remaining = parseInt(document.getElementById('timer').getAttribute('data-remaining'));
-    setInterval(() => {
-        if (remaining > 0) {
-            remaining--;
+    (() => {
+        const el = document.getElementById('timer');
+        let remaining = parseInt(el.getAttribute('data-remaining'));
+        function render() {
             const minutes = Math.floor(remaining / 60);
             const seconds = remaining % 60;
-            document.getElementById('timer').textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-            if (remaining === 0) {
-                // Replace submit button with "Contest has ended" message
-                const submitBtn = document.getElementById('submit-btn');
-                if (submitBtn) {
-                    submitBtn.replaceWith(document.createRange().createContextualFragment(
-                        '<div style="color: #ef4444; font-weight: 700;">Contest has ended</div>'
-                    ));
-                }
-                // Change timer color to red
-                document.getElementById('timer').style.color = '#ef4444';
-            }
+            el.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
-    }, 1000);
+        render();
+        const interval = setInterval(() => {
+            if (remaining > 0) {
+                remaining--;
+                render();
+                if (remaining === 0) {
+                    clearInterval(interval);
+                    const submitBtn = document.getElementById('submit-btn');
+                    if (submitBtn) {
+                        submitBtn.replaceWith(document.createRange().createContextualFragment(
+                            '<div style="color: #ef4444; font-weight: 700;">Contest has ended</div>'
+                        ));
+                    }
+                    el.style.color = '#ef4444';
+                }
+            }
+        }, 1000);
+    })();
 </script>
 {% endif %}
 
 <div style="display: flex; gap: 20px; padding: 20px; flex-wrap: wrap;">
     <!-- Problem Statement -->
     <div style="flex: 1; min-width: 400px; background-color: #1e293b; border-radius: 8px; padding: 24px;">
-        <h2 style="font-size: 1.875rem; margin-bottom: 16px;">{{ problem.title }}</h2>
-        <div class="problem-statement" style="color: #e5e7eb; line-height: 1.75;">
-            {{ statement|safe }}
+        <h2 style="margin-bottom: 8px;">{{ label }}. {{ title }}</h2>
+        <p class="muted" style="margin-bottom: 16px;">
+            Time limit {{ time_limit_ms }} ms (whole run) &middot; Memory {{ memory_limit_mb }} MB
+            {% if let Some(best) = best_bytes %}&middot; Your best: <span id="best-bytes">{{ best }}</span> bytes{% endif %}
+        </p>
+        <div class="problem-statement" style="line-height: 1.75;">
+            {{ statement_html|safe }}
         </div>
     </div>
 
@@ -69,13 +72,8 @@
             background-color: #0f172a;
             padding: 2px 6px;
             border-radius: 4px;
-            font-family: 'Courier New', monospace;
+            font-family: 'Ubuntu Mono', monospace;
             font-size: 0.9em;
-        }
-        .problem-statement code::before,
-        .problem-statement code::after {
-            content: ' ';
-            letter-spacing: -0.2em;
         }
         .problem-statement pre {
             background-color: #0f172a;
@@ -88,10 +86,6 @@
             background-color: transparent;
             padding: 0;
         }
-        .problem-statement pre code::before,
-        .problem-statement pre code::after {
-            content: none;
-        }
         .problem-statement h2, .problem-statement h3 {
             margin-top: 20px;
             margin-bottom: 12px;
@@ -100,50 +94,43 @@
 
     <!-- Editor and Output -->
     <div style="flex: 1; min-width: 400px; display: flex; flex-direction: column; gap: 16px;">
-        <form method="POST" action="/contest/{{ contest.id }}/problems/{{ problem.id }}/submit" style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- ACE Editor -->
+        <form method="POST" action="/contest/{{ contest.id }}/problems/{{ problem_id }}/submit" style="display: flex; flex-direction: column; gap: 12px;">
             <div style="background-color: #1e293b; border-radius: 8px; overflow: hidden; height: 500px;">
                 <div id="editor" style="height: 100%; width: 100%;"></div>
             </div>
             <input type="hidden" name="code" id="code-input" value="">
 
-            <!-- Byte count and submit button -->
             <div style="display: flex; gap: 12px; align-items: center;">
-                <div style="color: #9ca3af; margin-right: auto;">
+                <div class="muted" style="margin-right: auto;">
                     <span id="byte-count">0</span> bytes
                 </div>
-                {% if contest_ended %}
-                    <div style="color: #ef4444; font-weight: 700;">Contest has ended</div>
+                {% if let Some(reason) = submit_blocked %}
+                    <div style="color: #ef4444; font-weight: 700;">{{ reason }}</div>
                 {% else %}
                     <button type="submit" id="submit-btn">Submit</button>
                 {% endif %}
             </div>
         </form>
 
-        <!-- Output -->
-        <pre style="background-color: #1e293b; border-radius: 8px; padding: 16px; max-height: 200px; overflow-y: auto; color: #e5e7eb; font-size: 0.875rem;"><code id="output">Output shows up here!</code></pre>
+        <pre style="background-color: #1e293b; border-radius: 8px; padding: 16px; max-height: 200px; overflow-y: auto;"><code id="output">Output shows up here!</code></pre>
     </div>
 </div>
 
 <script>
-    let editor;
-    let byteCountEl = document.getElementById('byte-count');
-    let codeInput = document.getElementById('code-input');
-    let outputEl = document.getElementById('output');
-    let submitBtn = document.getElementById('submit-btn');
+    const byteCountEl = document.getElementById('byte-count');
+    const codeInput = document.getElementById('code-input');
+    const outputEl = document.getElementById('output');
+    const submitBtn = document.getElementById('submit-btn');
+    const bestBytesEl = document.getElementById('best-bytes');
 
     function updateCounts() {
         const code = editor.getValue();
         codeInput.value = code;
-
-        // Calculate byte count
-        const blob = new Blob([code]);
-        byteCountEl.textContent = blob.size;
+        byteCountEl.textContent = new Blob([code]).size;
     }
 
-    // Initialize ACE editor
     ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.32.7/src-noconflict/');
-    editor = ace.edit('editor');
+    const editor = ace.edit('editor');
     editor.setTheme('ace/theme/cobalt');
     editor.session.setMode('ace/mode/python');
     editor.setOptions({
@@ -154,16 +141,13 @@
         showPrintMargin: false
     });
 
-    // Storage key for this problem
-    const storageKey = 'code_{{ contest.id }}_{{ problem.id }}';
+    const storageKey = 'code_{{ contest.id }}_{{ problem_id }}';
 
-    // Load saved code from localStorage
     const savedCode = localStorage.getItem(storageKey);
     if (savedCode) {
-        editor.setValue(savedCode, -1); // -1 moves cursor to start
+        editor.setValue(savedCode, -1);
     }
 
-    // Save code to localStorage on change
     editor.session.on('change', () => {
         updateCounts();
         localStorage.setItem(storageKey, editor.getValue());
@@ -171,7 +155,6 @@
 
     updateCounts();
 
-    // Ctrl+Enter to submit
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'Enter') {
             e.preventDefault();
@@ -179,17 +162,16 @@
         }
     });
 
-    // Helper to escape HTML
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // Handle form submission
     const form = document.querySelector('form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!submitBtn) return;
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
@@ -201,26 +183,26 @@
         try {
             const response = await fetch(form.action, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: urlEncoded
             });
 
             if (response.ok) {
                 const result = await response.json();
 
-                // Format output with colors
-                let verdictColor;
-                switch(result.verdict) {
-                    case 'AC': verdictColor = '#10b981'; break;  // green
-                    case 'WA': verdictColor = '#ef4444'; break;  // red
-                    case 'TLE': verdictColor = '#eab308'; break; // yellow
-                    case 'RE': verdictColor = '#f97316'; break;  // orange
-                    default: verdictColor = '#94a3b8'; break;    // gray
-                }
+                const verdictColors = { AC: '#10b981', WA: '#ef4444', TLE: '#eab308', RE: '#f97316' };
+                const verdictColor = verdictColors[result.verdict] || '#94a3b8';
 
-                outputEl.innerHTML = `<span style="color: ${verdictColor}; font-weight: bold;">${result.verdict}</span> | <span style="color: #9ca3af;">${result.code_length} bytes | ${result.time}ms</span>\n\n${escapeHtml(result.output || '')}`;
+                outputEl.innerHTML = `<span style="color: ${verdictColor}; font-weight: bold;">${escapeHtml(result.verdict)}</span> | <span class="muted">${result.code_length} bytes | ${result.time}ms</span>\n\n${escapeHtml(result.output || '')}`;
+
+                if (result.verdict === 'AC') {
+                    const current = bestBytesEl ? parseInt(bestBytesEl.textContent) : null;
+                    if (bestBytesEl) {
+                        if (current === null || isNaN(current) || result.code_length < current) {
+                            bestBytesEl.textContent = result.code_length;
+                        }
+                    }
+                }
             } else {
                 const text = await response.text();
                 outputEl.textContent = `Error (HTTP ${response.status}): ${text}`;
@@ -228,8 +210,10 @@
         } catch (err) {
             outputEl.textContent = 'Error: ' + err.message;
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit';
+            }
         }
     });
 </script>
