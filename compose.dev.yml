@@ -3,7 +3,8 @@
 services:
   app:
     build: .
-    privileged: true # isolate needs namespaces to sandbox submissions
+    cap_add: [SYS_ADMIN, NET_ADMIN] # isolate sandboxing; matches prod
+    security_opt: [seccomp=unconfined, apparmor=unconfined]
     environment:
       DATABASE_URL: postgres://user:password@db:5432/codegolf
       ADMIN_PASSWORD: admin

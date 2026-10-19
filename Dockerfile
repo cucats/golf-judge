@@ -1,55 +1,53 @@
-FROM rust:1.90 AS builder
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y \
-    libsystemd-dev \
-    && rm -rf /var/lib/apt/lists/*
+FROM rust:1.90-bookworm AS builder
 
 WORKDIR /app
+# Build dependencies against a stub main so this layer stays cached until
+# Cargo.toml or Cargo.lock change; a redeploy then only recompiles this crate
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && \
+    cargo build --release && \
+    rm -rf src target/release/golf target/release/deps/golf-*
+
 COPY . .
-RUN cargo build --release
+RUN cargo build --release && cp target/release/golf /golf
 
-FROM rust:1.90
+FROM debian:bookworm-slim AS isolate
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y \
-    git \
-    python3 \
-    pkg-config \
-    libcap-dev \
-    libseccomp-dev \
-    libsystemd-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git build-essential pkg-config \
+    libcap-dev libseccomp-dev libsystemd-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install isolate (sandboxing tool for code execution)
 RUN git clone --depth 1 --branch v2.7 https://github.com/ioi/isolate.git /tmp/isolate && \
-    cd /tmp/isolate && \
-    make isolate && \
-    make install && \
-    rm -rf /tmp/isolate
+    make -C /tmp/isolate isolate && \
+    make -C /tmp/isolate install
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 libcap2 libseccomp2 libsystemd0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=isolate /usr/local/bin/isolate /usr/local/bin/isolate
+COPY --from=isolate /usr/local/etc/isolate /usr/local/etc/isolate
+RUN chmod u+s /usr/local/bin/isolate
 
 # isolate 2.x runs each box under a uid/gid taken from the isolate user's subid range
 RUN useradd --system --no-create-home isolate && \
     echo "isolate:100000:65536" >> /etc/subuid && \
     echo "isolate:100000:65536" >> /etc/subgid
 
-# Set up isolate directories
 RUN mkdir -p /var/local/lib/isolate && \
     chmod 777 /var/local/lib/isolate
 
 WORKDIR /app
 
-# Copy the compiled binary from builder
-COPY --from=builder /app/target/release/golf .
-COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/static ./static
-COPY --from=builder /app/problems ./problems
+COPY --from=builder /golf .
+COPY migrations ./migrations
+COPY templates ./templates
+COPY static ./static
+COPY problems ./problems
 
-# Expose the port the app runs on
 EXPOSE 3000
 
-# Run the application
 CMD ["./golf"]

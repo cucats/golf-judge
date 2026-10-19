@@ -2,6 +2,10 @@ services:
   app:
     build: .
     restart: unless-stopped
+    # isolate needs namespaces, mounts and a sandbox loopback; this is
+    # narrower than privileged: true (no host devices, no other capabilities)
+    cap_add: [SYS_ADMIN, NET_ADMIN]
+    security_opt: [seccomp=unconfined, apparmor=unconfined]
     environment:
       DATABASE_URL: postgres://user:password@db:5432/codegolf
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
