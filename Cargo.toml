@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 ammonia = "4.2.1"
+argon2 = "0.5"
 askama = "0.14.0"
 axum = "0.8.9"
 base64 = "0.22"

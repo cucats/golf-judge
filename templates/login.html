@@ -12,10 +12,12 @@
             name="username"
             value="{{ username }}"
             maxlength="32"
-            placeholder="Enter a username to get started"
+            placeholder="Username"
             required
             autofocus
         />
+        <input type="password" name="password" placeholder="Password" required>
+        <p class="muted">First time? Pick any username and password. You'll need the same password to log back in.</p>
         <input type="hidden" name="next" value="{{ next }}">
 
         <button type="submit">Join</button>

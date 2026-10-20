@@ -11,6 +11,7 @@ use super::{AppResult, Viewer, render, safe_next};
 use crate::{session, state::AppState};
 
 const MAX_USERNAME_CHARS: usize = 32;
+const MIN_PASSWORD_CHARS: usize = 4;
 
 #[derive(Template)]
 #[template(path = "login.html")]
@@ -42,6 +43,7 @@ pub async fn login_page(Query(query): Query<NextQuery>, session: Session) -> App
 #[derive(Deserialize)]
 pub struct LoginForm {
     username: String,
+    password: String,
     next: Option<String>,
 }
 
@@ -68,7 +70,11 @@ pub async fn login_post(
     let username = form.username.trim();
     let next = safe_next(form.next.as_deref());
 
-    if let Err(error) = validate_username(username) {
+    let outcome = match validate_username(username) {
+        Ok(()) => authenticate(&state, username, &form.password).await?,
+        Err(error) => Err(error),
+    };
+    if let Err(error) = outcome {
         return render(LoginTemplate {
             viewer: Viewer::from(None),
             error: Some(error),
@@ -77,11 +83,63 @@ pub async fn login_post(
         });
     }
 
-    ensure_user(&state, username).await?;
     session::set_user(&session, username.to_string(), false)
         .await
         .map_err(|e| super::AppError(e.to_string()))?;
     Ok(Redirect::to(&next).into_response())
+}
+
+/// The first login with a username claims it with that password; later logins must match
+async fn authenticate(
+    state: &AppState,
+    username: &str,
+    password: &str,
+) -> Result<Result<(), String>, sqlx::Error> {
+    const WRONG: &str = "Incorrect password for this username";
+    if password.is_empty() {
+        return Ok(Err("Password is required".into()));
+    }
+    ensure_user(state, username).await?;
+    let stored: Option<String> =
+        sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
+            .bind(username)
+            .fetch_one(&state.db)
+            .await?;
+    if let Some(hash) = stored {
+        return Ok(verify_password(password, &hash).then_some(()).ok_or(WRONG.into()));
+    }
+    if password.chars().count() < MIN_PASSWORD_CHARS {
+        return Ok(Err(format!(
+            "Choose a password of at least {MIN_PASSWORD_CHARS} characters"
+        )));
+    }
+    let claimed = sqlx::query(
+        "UPDATE users SET password_hash = $2 WHERE username = $1 AND password_hash IS NULL",
+    )
+    .bind(username)
+    .bind(hash_password(password))
+    .execute(&state.db)
+    .await?
+    .rows_affected()
+        == 1;
+    Ok(claimed.then_some(()).ok_or(WRONG.into()))
+}
+
+fn hash_password(password: &str) -> String {
+    use argon2::password_hash::{PasswordHasher, SaltString, rand_core::OsRng};
+    argon2::Argon2::default()
+        .hash_password(password.as_bytes(), &SaltString::generate(&mut OsRng))
+        .expect("argon2 hashing with default parameters cannot fail")
+        .to_string()
+}
+
+fn verify_password(password: &str, hash: &str) -> bool {
+    use argon2::password_hash::{PasswordHash, PasswordVerifier};
+    PasswordHash::new(hash).is_ok_and(|parsed| {
+        argon2::Argon2::default()
+            .verify_password(password.as_bytes(), &parsed)
+            .is_ok()
+    })
 }
 
 async fn ensure_user(state: &AppState, username: &str) -> Result<(), sqlx::Error> {
@@ -169,6 +227,14 @@ mod tests {
         assert!(validate_username("").is_err());
         assert!(validate_username(&"x".repeat(33)).is_err());
         assert!(validate_username("a\u{0}b").is_err());
+    }
+
+    #[test]
+    fn password_hash_roundtrip() {
+        let hash = hash_password("hunter2");
+        assert!(verify_password("hunter2", &hash));
+        assert!(!verify_password("hunter3", &hash));
+        assert!(!verify_password("hunter2", "not a hash"));
     }
 
     #[test]

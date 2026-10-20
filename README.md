@@ -4,8 +4,8 @@
 ![Rust](https://img.shields.io/badge/rust-1.90-orange.svg)
 
 A code golf judge built with Rust. Admins build a bank of problems in the
-browser and assemble any number of contests from it; contestants join with a
-username and submit Python solutions that are judged in an
+username and password (the first login claims the username) and submit Python 3.13
+solutions that are judged in an
 [isolate](https://github.com/ioi/isolate) sandbox.
 
 ## Running locally
