@@ -12,12 +12,15 @@ code -c $A -b $A -d 'name=Round 1&duration=30&pos_8=1&pos_4=2' $B/admin/contests
 code -c $A -b $A -d 'name=Round 2&duration=60&pos_1=1' $B/admin/contests
 curl -s -b $A -d 'name=&duration=0' $B/admin/contests | rg -o 'Contest name is required'
 echo "== contestant before start: waiting room; leaderboard hidden"
-code -c $U -b $U -d 'username=alice&next=/contest/1/join' $B/login
+code -c $U -b $U -d 'username=alice&password=alicepw&next=/contest/1/join' $B/login
 code -b $U $B/contest/1/join
 code -b $U $B/contest/1/problems
 code -b $U $B/contest/1/leaderboard
+echo "== passwords: wrong one refused, too-short first password refused"
+curl -s -d 'username=alice&password=wrong' $B/login | rg -o 'Incorrect password for this username'
+curl -s -d 'username=carol&password=abc' $B/login | rg -o 'at least 4 characters'
 echo "== open redirect blocked"
-code -c $V -b $V -d 'username=bob&next=https://evil.example' $B/login
+code -c $V -b $V -d 'username=bob&password=bobpw&next=https://evil.example' $B/login
 echo "== start contest 1 (twice: second is a no-op)"
 code -b $A -X POST $B/admin/contests/1/start
 code -b $A -X POST $B/admin/contests/1/start
@@ -32,6 +35,10 @@ curl -s -b $V --data-urlencode 'code=f=lambda n:n' $B/contest/1/problems/8/submi
 curl -s -b $V --data-urlencode 'code=f=lambda n:1/0' $B/contest/1/problems/8/submit | head -c 300; echo
 curl -s -b $V --data-urlencode $'code=def f(n):\n while 1:pass' $B/contest/1/problems/8/submit | head -c 300; echo
 curl -s -b $V --data-urlencode $'code=import os\nos.fork()\nf=lambda n:0' $B/contest/1/problems/8/submit | head -c 300; echo
+echo "== CRLF counts as one byte (expect 56, not 57)"
+curl -s -b $V --data-urlencode $'code=f=lambda n:sum(sum(map(int,str(i)))for i in range(n+1))\r\n' $B/contest/1/problems/8/submit | rg -o '"code_length":[0-9]+'
+echo "== file size limit"
+curl -s -b $V --data-urlencode $'code=open("x","w").write("a"*9**8)\nf=0' $B/contest/1/problems/8/submit | rg -o '"verdict":"[A-Z]+"'
 echo "== admin cannot submit"
 curl -s -b $A --data-urlencode 'code=f=1' $B/contest/1/problems/8/submit; echo
 echo "== leaderboard"
