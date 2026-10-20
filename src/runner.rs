@@ -5,6 +5,8 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tokio::sync::Semaphore;
 
+/// Must live under a directory bound into the box (--dir=/usr)
+const PYTHON: &str = "/usr/local/bin/python3";
 const OUTPUT_CAP_BYTES: usize = 1 << 20;
 const ERROR_MESSAGE_CAP_BYTES: usize = 4096;
 /// Caps files written inside the box so a submission can't fill the disk
@@ -172,7 +174,7 @@ async fn run_in_box(
             "--dir=/bin",
             "--run",
             "--",
-            "/usr/bin/python3",
+            PYTHON,
             "main.py",
         ])
         .stdin(std::process::Stdio::piped())

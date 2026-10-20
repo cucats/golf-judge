@@ -22,10 +22,11 @@ RUN git clone --depth 1 --branch v2.7 https://github.com/ioi/isolate.git /tmp/is
     make -C /tmp/isolate isolate && \
     make -C /tmp/isolate install
 
-FROM debian:trixie-slim
+# Submissions run on this interpreter; 3.15 adds unpacking in comprehensions
+FROM python:3.15.0-slim-trixie
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 libcap2 libseccomp2 libsystemd0 \
+    libcap2 libseccomp2 libsystemd0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=isolate /usr/local/bin/isolate /usr/local/bin/isolate

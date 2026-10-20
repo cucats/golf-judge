@@ -6,7 +6,7 @@
 A code golf judge built with Rust. Admins build a bank of problems in the
 browser and assemble any number of contests from it; contestants log in with a
 username and password (the first login claims the username) and submit Python
-3.13 solutions that are judged in an [isolate](https://github.com/ioi/isolate)
+3.15 solutions that are judged in an [isolate](https://github.com/ioi/isolate)
 sandbox.
 
 ## Running locally
