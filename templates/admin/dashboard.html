@@ -16,7 +16,8 @@
             <p>No contests yet. <a href="/admin/contests/new">Create one</a></p>
         </div>
     {% else %}
-        <table class="table">
+        <div class="table-scroll">
+<table class="table">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -60,6 +61,7 @@
                 {% endfor %}
             </tbody>
         </table>
+</div>
     {% endif %}
 </div>
 {% endblock %}

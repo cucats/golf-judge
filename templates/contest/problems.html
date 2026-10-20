@@ -46,7 +46,8 @@
             <p>No problems in this contest.</p>
         </div>
     {% else %}
-        <table class="table">
+        <div class="table-scroll">
+<table class="table">
             <thead>
                 <tr>
                     <th>#</th>
@@ -72,6 +73,7 @@
                 {% endfor %}
             </tbody>
         </table>
+</div>
     {% endif %}
 </div>
 {% endblock %}

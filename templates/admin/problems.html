@@ -22,7 +22,8 @@
             <p>No problems yet. <a href="/admin/problems/new">Create one</a></p>
         </div>
     {% else %}
-        <table class="table">
+        <div class="table-scroll">
+<table class="table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -53,6 +54,7 @@
                 {% endfor %}
             </tbody>
         </table>
+</div>
     {% endif %}
 </div>
 {% endblock %}

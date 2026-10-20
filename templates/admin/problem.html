@@ -112,7 +112,7 @@
         <p class="muted">Runs against the saved version of this problem (save first to test your latest edits).</p>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
         <div style="background-color: #1e293b; border-radius: 8px; overflow: hidden; height: 400px; margin-top: 12px;">
-            <div id="editor" style="height: 100%; width: 100%;"></div>
+            <div id="editor" class="code-editor" style="height: 100%; width: 100%;"></div>
         </div>
         <div class="btn-row" style="margin-top: 12px;">
             <span class="muted"><span id="byte-count">0</span> bytes</span>
@@ -128,13 +128,14 @@
 
                 ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.32.7/src-noconflict/');
                 const editor = ace.edit('editor');
-                editor.setTheme('ace/theme/cobalt');
+                editor.setTheme('ace/theme/tomorrow_night');
                 editor.session.setMode('ace/mode/python');
                 editor.setOptions({
                     useSoftTabs: false,
                     tabSize: 4,
                     showInvisibles: true,
-                    fontSize: '14px',
+                    fontSize: '15px',
+                    fontFamily: "'Ubuntu Mono', monospace",
                     showPrintMargin: false
                 });
 

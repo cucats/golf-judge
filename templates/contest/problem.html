@@ -44,13 +44,13 @@
 </script>
 {% endif %}
 
-<div style="display: flex; gap: 20px; padding: 20px; flex-wrap: wrap;">
+<div class="problem-layout">
     <!-- Problem Statement -->
-    <div style="flex: 1; min-width: 400px; background-color: #1e293b; border-radius: 8px; padding: 24px;">
+    <div style="background-color: #1e293b; border-radius: 8px; padding: 24px;">
         <h2 style="margin-bottom: 8px;">{{ label }}. {{ title }}</h2>
         <p class="muted" style="margin-bottom: 16px;">
             Time limit {{ time_limit_ms }} ms (whole run) &middot; Memory {{ memory_limit_mb }} MB
-            {% if let Some(best) = best_bytes %}&middot; Your best: <span id="best-bytes">{{ best }}</span> bytes{% endif %}
+            <span id="best-wrap"{% if best_bytes.is_none() %} hidden{% endif %}>&middot; Your best: <span id="best-bytes">{% if let Some(best) = best_bytes %}{{ best }}{% endif %}</span> bytes</span>
         </p>
         <div class="problem-statement" style="line-height: 1.75;">
             {{ statement_html|safe }}
@@ -93,10 +93,10 @@
     </style>
 
     <!-- Editor and Output -->
-    <div style="flex: 1; min-width: 400px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
         <form method="POST" action="/contest/{{ contest.id }}/problems/{{ problem_id }}/submit" style="display: flex; flex-direction: column; gap: 12px;">
-            <div style="background-color: #1e293b; border-radius: 8px; overflow: hidden; height: 500px;">
-                <div id="editor" style="height: 100%; width: 100%;"></div>
+            <div style="border: 1px solid #334155; border-radius: 8px; overflow: hidden; height: 500px;">
+                <div id="editor" class="code-editor" data-user="{% if let Some(user) = viewer.username %}{{ user }}{% endif %}" style="height: 100%; width: 100%;"></div>
             </div>
             <input type="hidden" name="code" id="code-input" value="">
 
@@ -112,7 +112,7 @@
             </div>
         </form>
 
-        <pre style="background-color: #1e293b; border-radius: 8px; padding: 16px; max-height: 200px; overflow-y: auto;"><code id="output">Output shows up here!</code></pre>
+        <pre style="background-color: #1e293b; border-radius: 8px; padding: 16px; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word;"><code id="output">Output shows up here!</code></pre>
     </div>
 </div>
 
@@ -131,17 +131,18 @@
 
     ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.32.7/src-noconflict/');
     const editor = ace.edit('editor');
-    editor.setTheme('ace/theme/cobalt');
+    editor.setTheme('ace/theme/tomorrow_night');
     editor.session.setMode('ace/mode/python');
     editor.setOptions({
         useSoftTabs: false,
         tabSize: 4,
         showInvisibles: true,
-        fontSize: '14px',
+        fontSize: '15px',
+        fontFamily: "'Ubuntu Mono', monospace",
         showPrintMargin: false
     });
 
-    const storageKey = 'code_{{ contest.id }}_{{ problem_id }}';
+    const storageKey = 'code_{{ contest.id }}_{{ problem_id }}_' + document.getElementById('editor').dataset.user;
 
     const savedCode = localStorage.getItem(storageKey);
     if (savedCode) {
@@ -196,11 +197,10 @@
                 outputEl.innerHTML = `<span style="color: ${verdictColor}; font-weight: bold;">${escapeHtml(result.verdict)}</span> | <span class="muted">${result.code_length} bytes | ${result.time}ms</span>\n\n${escapeHtml(result.output || '')}`;
 
                 if (result.verdict === 'AC') {
-                    const current = bestBytesEl ? parseInt(bestBytesEl.textContent) : null;
-                    if (bestBytesEl) {
-                        if (current === null || isNaN(current) || result.code_length < current) {
-                            bestBytesEl.textContent = result.code_length;
-                        }
+                    const current = parseInt(bestBytesEl.textContent);
+                    if (isNaN(current) || result.code_length < current) {
+                        bestBytesEl.textContent = result.code_length;
+                        document.getElementById('best-wrap').hidden = false;
                     }
                 }
             } else {

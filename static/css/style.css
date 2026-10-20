@@ -8,6 +8,7 @@
 
 html {
     color-scheme: dark;
+    scrollbar-color: #334155 #0f172a;
 }
 
 body {
@@ -234,16 +235,19 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 24px;
 }
 
-.nav a {
-    margin-right: 20px;
+.nav strong {
+    white-space: nowrap;
 }
 
 .nav-user {
     display: flex;
     align-items: center;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 8px 20px;
 }
 
 .nav-username {
@@ -313,6 +317,7 @@ label {
 
 .btn-row {
     display: flex;
+    flex-direction: row;
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
@@ -621,4 +626,53 @@ button.copy-btn {
 .score-link:hover {
     background-color: #334155;
     text-decoration: none;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+/* The Ace editor, restyled to match the site */
+.code-editor.ace_editor,
+.code-editor .ace_gutter {
+    background-color: #0f172a;
+}
+
+.code-editor .ace_gutter {
+    color: #475569;
+    border-right: 1px solid #1e293b;
+}
+
+.code-editor .ace_active-line,
+.code-editor .ace_gutter-active-line {
+    background-color: #1e293b;
+}
+
+.problem-layout {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    flex-wrap: wrap;
+}
+
+.problem-layout > * {
+    flex: 1 1 400px;
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    .container,
+    .problem-layout {
+        padding: 16px;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+        margin-bottom: 24px;
+    }
 }
