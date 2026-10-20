@@ -188,7 +188,7 @@ pub async fn contest_problems(
     let mut progress: HashMap<i32, (bool, Option<i32>, i64)> = HashMap::new();
     if let Some(user) = &user {
         let rows: Vec<(i32, bool, Option<i32>, i64)> = sqlx::query_as(
-            "SELECT problem_id, BOOL_OR(verdict = 'AC'), MIN(code_length) FILTER (WHERE verdict = 'AC'), COUNT(*)
+            "SELECT problem_id, BOOL_OR(verdict = 'AC'), MIN(code_length) FILTER (WHERE verdict = 'AC'), COUNT(*) FILTER (WHERE verdict <> 'SE')
              FROM submissions WHERE contest_id = $1 AND username = $2
              GROUP BY problem_id",
         )
@@ -310,7 +310,14 @@ fn submit_blocked_reason(contest: &Contest, user: Option<&SessionUser>) -> Optio
 
 #[derive(Deserialize)]
 pub struct SubmitForm {
-    pub code: String,
+    code: String,
+}
+
+impl SubmitForm {
+    /// Windows line endings count as one byte, the same as on every other platform
+    pub fn code(&self) -> String {
+        self.code.replace("\r\n", "\n")
+    }
 }
 
 #[derive(Serialize)]
@@ -375,7 +382,7 @@ pub async fn run_judge(
         time_limit_ms: problem.time_limit_ms,
         memory_limit_kb: problem.memory_limit_kb,
     };
-    runner::judge(
+    Ok(runner::judge(
         code,
         &problem.grader,
         &problem.test_input,
@@ -383,7 +390,14 @@ pub async fn run_judge(
         &limits,
     )
     .await
-    .map_err(|e| format!("Judge error: {e}"))
+    .unwrap_or_else(|e| {
+        eprintln!("judge failure on problem {}: {e}", problem.id);
+        runner::RunResult {
+            verdict: runner::Verdict::SE,
+            time_ms: 0,
+            output: "System error: the judge failed to run your code. This is not your fault; please resubmit.".into(),
+        }
+    }))
 }
 
 pub async fn contest_submit(
@@ -411,7 +425,7 @@ pub async fn contest_submit(
         ));
     };
 
-    let code = &form.code;
+    let code = &form.code();
     let result = match run_judge(&problem, code).await {
         Ok(result) => result,
         Err(message) => return Ok(SubmitResponse::error(message)),

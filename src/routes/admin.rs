@@ -806,10 +806,11 @@ pub async fn test_problem(
     let Some(problem) = problems::get(&state.db, problem_id).await? else {
         return Ok(SubmitResponse::error("Problem not found"));
     };
-    Ok(match run_judge(&problem, &form.code).await {
+    let code = form.code();
+    Ok(match run_judge(&problem, &code).await {
         Ok(result) => Json(SubmitResponse {
             verdict: result.verdict.as_str().to_string(),
-            code_length: form.code.len() as i32,
+            code_length: code.len() as i32,
             time: result.time_ms,
             output: result.output,
         })

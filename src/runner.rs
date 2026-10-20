@@ -7,6 +7,8 @@ use tokio::sync::Semaphore;
 
 const OUTPUT_CAP_BYTES: usize = 1 << 20;
 const ERROR_MESSAGE_CAP_BYTES: usize = 4096;
+/// Caps files written inside the box so a submission can't fill the disk
+const FILE_SIZE_LIMIT_KB: u32 = 4096;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(clippy::upper_case_acronyms)]
@@ -15,6 +17,8 @@ pub enum Verdict {
     WA,
     TLE,
     RE,
+    /// The judge itself failed; not the submission's fault
+    SE,
 }
 
 impl Verdict {
@@ -24,6 +28,7 @@ impl Verdict {
             Verdict::WA => "WA",
             Verdict::TLE => "TLE",
             Verdict::RE => "RE",
+            Verdict::SE => "SE",
         }
     }
 }
@@ -157,6 +162,8 @@ async fn run_in_box(
             &format!("{:.3}", time_secs * 2.0 + 1.0),
             "--mem",
             &limits.memory_limit_kb.to_string(),
+            "--fsize",
+            &FILE_SIZE_LIMIT_KB.to_string(),
             "--meta",
             &meta_file,
             "--dir=/usr",

@@ -190,7 +190,7 @@
             if (response.ok) {
                 const result = await response.json();
 
-                const verdictColors = { AC: '#10b981', WA: '#ef4444', TLE: '#eab308', RE: '#f97316' };
+                const verdictColors = { AC: '#10b981', WA: '#ef4444', TLE: '#eab308', RE: '#f97316', SE: '#a855f7' };
                 const verdictColor = verdictColors[result.verdict] || '#94a3b8';
 
                 outputEl.innerHTML = `<span style="color: ${verdictColor}; font-weight: bold;">${escapeHtml(result.verdict)}</span> | <span class="muted">${result.code_length} bytes | ${result.time}ms</span>\n\n${escapeHtml(result.output || '')}`;
