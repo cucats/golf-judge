@@ -16,15 +16,12 @@
     {% endif %}
 
     <div class="card" style="overflow-x: auto;">
-        <table class="table" style="min-width: 800px; table-layout: fixed;">
+        <table class="table" style="min-width: {{ 390 + 90 * board.problem_ids.len() }}px; table-layout: fixed;">
             <colgroup>
                 <col style="width: 60px;">
                 <col style="width: 150px;">
                 <col style="width: 80px;">
                 <col style="width: 100px;">
-                {% for _ in board.problem_ids %}
-                    <col style="width: 120px;">
-                {% endfor %}
             </colgroup>
             <thead>
                 <tr>
