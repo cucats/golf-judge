@@ -94,7 +94,7 @@
 
     <!-- Editor and Output -->
     <div style="display: flex; flex-direction: column; gap: 16px;">
-        <form method="POST" action="/contest/{{ contest.id }}/problems/{{ problem_id }}/submit" style="display: flex; flex-direction: column; gap: 12px;">
+        <form id="submit-form" method="POST" action="/contest/{{ contest.id }}/problems/{{ problem_id }}/submit" style="display: flex; flex-direction: column; gap: 12px;">
             <div style="border: 1px solid #334155; border-radius: 8px; overflow: hidden; height: 500px;">
                 <div id="editor" class="code-editor" data-user="{% if let Some(user) = viewer.username %}{{ user }}{% endif %}" style="height: 100%; width: 100%;"></div>
             </div>
@@ -169,7 +169,7 @@
         return div.innerHTML;
     }
 
-    const form = document.querySelector('form');
+    const form = document.getElementById('submit-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!submitBtn) return;
