@@ -415,6 +415,9 @@ pub async fn run_judge(
     if code.trim().is_empty() {
         return Err("Code is empty".into());
     }
+    if code.contains('\0') {
+        return Err("Code can't contain NUL bytes".into());
+    }
     if problem.test_output.trim().is_empty() || problem.grader.trim().is_empty() {
         return Err("This problem has no tests or grader yet".into());
     }
@@ -459,37 +462,46 @@ pub async fn contest_submit(
     else {
         return Ok(SubmitResponse::error("Problem not found in this contest"));
     };
-    let _guard = match JudgingGuard::try_acquire(&user.username) {
+    let guard = match JudgingGuard::try_acquire(&user.username) {
         Ok(guard) => guard,
         Err(reason) => return Ok(SubmitResponse::error(reason)),
     };
 
-    let code = &form.code();
-    let result = match run_judge(&problem, code).await {
-        Ok(result) => result,
+    // Judge and record in a separate task, so a client that disconnects
+    // mid-judge (refresh, closed tab) can't cancel it and lose the submission
+    let code = form.code();
+    let judged = tokio::spawn(async move {
+        let _guard = guard;
+        let result = match run_judge(&problem, &code).await {
+            Ok(result) => result,
+            Err(message) => return Ok(Err(message)),
+        };
+        record_participant(&state, contest_id, &user).await;
+        sqlx::query(
+            "INSERT INTO submissions (id, username, contest_id, problem_id, verdict, code_length, time, code, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        )
+        .bind(generate_submission_id())
+        .bind(&user.username)
+        .bind(contest_id)
+        .bind(problem_id)
+        .bind(result.verdict.as_str())
+        .bind(code.len() as i32)
+        .bind(result.time_ms)
+        .bind(&code)
+        .bind(chrono::Utc::now().timestamp())
+        .execute(&state.db)
+        .await?;
+        Ok::<_, sqlx::Error>(Ok((result, code.len() as i32)))
+    });
+    let (result, code_length) = match judged.await.expect("judge task panicked")? {
+        Ok(judged) => judged,
         Err(message) => return Ok(SubmitResponse::error(message)),
     };
 
-    record_participant(&state, contest_id, &user).await;
-    sqlx::query(
-        "INSERT INTO submissions (id, username, contest_id, problem_id, verdict, code_length, time, code, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-    )
-    .bind(generate_submission_id())
-    .bind(&user.username)
-    .bind(contest_id)
-    .bind(problem_id)
-    .bind(result.verdict.as_str())
-    .bind(code.len() as i32)
-    .bind(result.time_ms)
-    .bind(code)
-    .bind(chrono::Utc::now().timestamp())
-    .execute(&state.db)
-    .await?;
-
     Ok(Json(SubmitResponse {
         verdict: result.verdict.as_str().to_string(),
-        code_length: code.len() as i32,
+        code_length,
         time: result.time_ms,
         output: result.output,
     })

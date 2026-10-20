@@ -105,8 +105,13 @@ async fn authenticate(
             .bind(username)
             .fetch_one(&state.db)
             .await?;
+    // argon2 takes tens of milliseconds of CPU; keep it off the async workers
+    let password = password.to_string();
     if let Some(hash) = stored {
-        return Ok(verify_password(password, &hash).then_some(()).ok_or(WRONG.into()));
+        let matches = tokio::task::spawn_blocking(move || verify_password(&password, &hash))
+            .await
+            .expect("password check panicked");
+        return Ok(matches.then_some(()).ok_or(WRONG.into()));
     }
     if password.chars().count() < MIN_PASSWORD_CHARS {
         return Ok(Err(format!(
@@ -117,7 +122,11 @@ async fn authenticate(
         "UPDATE users SET password_hash = $2 WHERE username = $1 AND password_hash IS NULL",
     )
     .bind(username)
-    .bind(hash_password(password))
+    .bind(
+        tokio::task::spawn_blocking(move || hash_password(&password))
+            .await
+            .expect("password hashing panicked"),
+    )
     .execute(&state.db)
     .await?
     .rows_affected()
