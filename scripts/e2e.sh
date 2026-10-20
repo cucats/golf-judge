@@ -39,6 +39,11 @@ echo "== CRLF counts as one byte (expect 56, not 57)"
 curl -s -b $V --data-urlencode $'code=f=lambda n:sum(sum(map(int,str(i)))for i in range(n+1))\r\n' $B/contest/1/problems/8/submit | rg -o '"code_length":[0-9]+'
 echo "== file size limit"
 curl -s -b $V --data-urlencode $'code=open("x","w").write("a"*9**8)\nf=0' $B/contest/1/problems/8/submit | rg -o '"verdict":"[A-Z]+"'
+echo "== 2 in flight per account (third refused), then 10 per minute"
+D=$(mktemp); code -c $D -b $D -d 'username=dave&password=davepw' $B/login
+slow=$'code=import time\ntime.sleep(1)\nf=lambda n:0'
+for _ in 1 2 3; do curl -s -b $D --data-urlencode "$slow" $B/contest/1/problems/8/submit | rg -o '"verdict":"[A-Z]+"|2 submissions being judged' & done; wait
+for _ in $(seq 9); do curl -s -b $D --data-urlencode 'code=f=lambda n:0' $B/contest/1/problems/8/submit | rg -o '"verdict":"[A-Z]+"|10 per minute'; done | sort | uniq -c
 echo "== admin cannot submit"
 curl -s -b $A --data-urlencode 'code=f=1' $B/contest/1/problems/8/submit; echo
 echo "== leaderboard"

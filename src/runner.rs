@@ -58,6 +58,10 @@ static WORKERS: LazyLock<u32> = LazyLock::new(|| {
                 .unwrap_or(2)
         })
 });
+pub fn workers() -> usize {
+    *WORKERS as usize
+}
+
 static JUDGE_SLOTS: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(*WORKERS as usize));
 static FREE_BOXES: LazyLock<Mutex<Vec<u32>>> =
     LazyLock::new(|| Mutex::new((0..*WORKERS).collect()));

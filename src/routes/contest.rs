@@ -5,8 +5,9 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 use tower_sessions::Session;
 
 use super::{AppResult, Viewer, login_redirect, not_found, render};
@@ -340,24 +341,63 @@ impl SubmitResponse {
     }
 }
 
-/// Users with a submission currently being judged
-static JUDGING: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(Default::default);
+const MAX_IN_FLIGHT_PER_USER: usize = 2;
+const MAX_SUBMISSIONS_PER_WINDOW: usize = 10;
+const SUBMISSION_WINDOW: Duration = Duration::from_secs(60);
+/// Submissions allowed to wait for a box, per box, before new ones are refused
+const QUEUE_PER_WORKER: usize = 4;
+
+/// Per-user and global limits on submissions being judged, so one account (or
+/// many) can't queue unbounded work
+#[derive(Default)]
+struct Admission {
+    in_flight: HashMap<String, usize>,
+    recent: HashMap<String, VecDeque<Instant>>,
+    total_in_flight: usize,
+}
+
+static ADMISSION: LazyLock<Mutex<Admission>> = LazyLock::new(Default::default);
 
 struct JudgingGuard(String);
 
 impl JudgingGuard {
-    fn try_acquire(username: &str) -> Option<Self> {
-        JUDGING
-            .lock()
-            .unwrap()
-            .insert(username.to_string())
-            .then(|| Self(username.to_string()))
+    fn try_acquire(username: &str) -> Result<Self, &'static str> {
+        let mut admission = ADMISSION.lock().unwrap();
+        let now = Instant::now();
+        admission
+            .recent
+            .retain(|_, times| times.back().is_some_and(|&t| now - t < SUBMISSION_WINDOW));
+
+        if admission.total_in_flight >= runner::workers() * QUEUE_PER_WORKER {
+            return Err("The judge is busy; please try again in a few seconds");
+        }
+        if admission.in_flight.get(username).copied().unwrap_or(0) >= MAX_IN_FLIGHT_PER_USER {
+            return Err("You already have 2 submissions being judged");
+        }
+        let times = admission.recent.entry(username.to_string()).or_default();
+        while times.front().is_some_and(|&t| now - t >= SUBMISSION_WINDOW) {
+            times.pop_front();
+        }
+        if times.len() >= MAX_SUBMISSIONS_PER_WINDOW {
+            return Err("Too many submissions; you can submit 10 per minute");
+        }
+        times.push_back(now);
+        *admission.in_flight.entry(username.to_string()).or_default() += 1;
+        admission.total_in_flight += 1;
+        Ok(Self(username.to_string()))
     }
 }
 
 impl Drop for JudgingGuard {
     fn drop(&mut self) {
-        JUDGING.lock().unwrap().remove(&self.0);
+        let mut admission = ADMISSION.lock().unwrap();
+        admission.total_in_flight -= 1;
+        if let Some(count) = admission.in_flight.get_mut(&self.0) {
+            *count -= 1;
+            if *count == 0 {
+                admission.in_flight.remove(&self.0);
+            }
+        }
     }
 }
 
@@ -419,10 +459,9 @@ pub async fn contest_submit(
     else {
         return Ok(SubmitResponse::error("Problem not found in this contest"));
     };
-    let Some(_guard) = JudgingGuard::try_acquire(&user.username) else {
-        return Ok(SubmitResponse::error(
-            "You already have a submission being judged",
-        ));
+    let _guard = match JudgingGuard::try_acquire(&user.username) {
+        Ok(guard) => guard,
+        Err(reason) => return Ok(SubmitResponse::error(reason)),
     };
 
     let code = &form.code();
