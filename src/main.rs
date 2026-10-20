@@ -11,7 +11,7 @@ use axum::{
     Router,
     routing::{get, post},
 };
-use routes::{admin, auth, contest};
+use routes::{admin, auth, contest, player};
 use sqlx::postgres::PgPoolOptions;
 use state::AppState;
 use std::env;
@@ -113,6 +113,7 @@ async fn main() {
             "/contest/{id}/leaderboard",
             get(contest::contest_leaderboard),
         )
+        .route("/contest/{id}/submissions", get(player::player_page))
         .route(
             "/api/contest/{id}/leaderboard",
             get(contest::api_contest_leaderboard),

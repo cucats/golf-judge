@@ -510,6 +510,8 @@ struct LeaderboardTemplate {
     contest: Contest,
     board: Leaderboard,
     live: bool,
+    /// Whether usernames and scores link to the player's code
+    inspect: bool,
 }
 
 pub async fn contest_leaderboard(
@@ -528,6 +530,7 @@ pub async fn contest_leaderboard(
         viewer: Viewer::from(user.as_ref()),
         board: leaderboard::load(&state.db, contest_id).await?,
         live: contest.is_accepting_submissions(),
+        inspect: super::player::can_inspect(&contest, user.as_ref().is_some_and(|u| u.is_admin)),
         contest,
     })
 }

@@ -6,6 +6,10 @@
     box-sizing: border-box;
 }
 
+html {
+    color-scheme: dark;
+}
+
 body {
     font-family: 'Ubuntu Mono', monospace;
     background-color: #0f172a;
@@ -369,4 +373,248 @@ textarea.code-area.tall {
     margin: 0;
     font-family: 'Ubuntu Mono', monospace;
     font-size: 0.875rem;
+}
+
+.badge.se {
+    background-color: #a855f7;
+    color: white;
+}
+
+.badge.best {
+    background-color: transparent;
+    border: 1px solid #fbbf24;
+    color: #fbbf24;
+    margin-left: 4px;
+}
+
+.player-link {
+    color: inherit;
+}
+
+.player-link:hover {
+    color: #60a5fa;
+}
+
+.player-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 16px 0 24px;
+}
+
+.player-name {
+    margin: 0;
+    word-break: break-all;
+}
+
+.stat-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px 16px;
+    min-width: 96px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-value.bytes {
+    color: #fbbf24;
+}
+
+.stat-label {
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+.problem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.problem-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e2e8f0;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.problem-card:hover {
+    text-decoration: none;
+    border-color: #60a5fa;
+    transform: translateY(-1px);
+}
+
+.problem-card.selected {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 1px #60a5fa inset;
+}
+
+.problem-card.unsolved {
+    opacity: 0.65;
+}
+
+.pc-label {
+    display: inline-block;
+    font-weight: 700;
+    color: #60a5fa;
+}
+
+.pc-title {
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pc-score {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.pc-score small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #94a3b8;
+}
+
+.medal-diamond .pc-score,
+.medal-diamond .solution-bytes {
+    color: #60a5fa;
+}
+
+.medal-gold .pc-score,
+.medal-gold .solution-bytes {
+    color: #fbbf24;
+}
+
+.pc-attempts {
+    font-size: 0.75rem;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    background-color: #172554;
+    border: 1px solid #1e40af;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    margin: 28px 0 12px;
+}
+
+.solution {
+    border-left: 3px solid #334155;
+}
+
+.solution.medal-diamond {
+    border-left-color: #60a5fa;
+}
+
+.solution.medal-gold {
+    border-left-color: #fbbf24;
+}
+
+.solution-head,
+.solution-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.solution-title {
+    color: #e2e8f0;
+    font-weight: 700;
+}
+
+.solution-bytes {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.code-block {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+    font-family: 'Ubuntu Mono', monospace;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #f1f5f9;
+}
+
+.records {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+button.chip {
+    background-color: #0f172a;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+button.chip:hover {
+    background-color: #1e293b;
+    border-color: #60a5fa;
+}
+
+button.chip.active {
+    border-color: #fbbf24;
+    color: #fbbf24;
+    font-weight: 700;
+}
+
+button.copy-btn {
+    padding: 6px 14px;
+    font-size: 0.875rem;
+}
+
+.score-link {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.score-link:hover {
+    background-color: #334155;
+    text-decoration: none;
 }

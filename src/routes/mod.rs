@@ -1,6 +1,7 @@
 pub mod admin;
 pub mod auth;
 pub mod contest;
+pub mod player;
 
 use askama::Template;
 use axum::{

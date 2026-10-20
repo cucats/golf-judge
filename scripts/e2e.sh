@@ -58,10 +58,18 @@ code -b $A -d 'name=Round 1 renamed&duration=45&pos_1=1' $B/admin/contests/1
 curl -s -b $A $B/admin/contests/1 | rg -o 'Round 1 renamed|locked once' | sort -u
 code -b $A -X POST $B/admin/contests/1/delete
 curl -s -b $A $B/admin | rg -c 'Round 1 renamed'
+echo "== player pages: admin can inspect a live contest, others can't"
+code -b $A "$B/contest/1/submissions?user=bob"
+code "$B/contest/1/submissions?user=bob"
+curl -s $B/contest/1/leaderboard | rg -c 'href="/contest/1/submissions' || true
 echo "== end contest -> public read-only problems"
 code -b $A -X POST $B/admin/contests/1/end
 code $B/contest/1/problems
 curl -s $B/contest/1/problems/8 | rg -o 'Contest has ended' | head -1
 curl -s -b $U --data-urlencode 'code=f=1' $B/contest/1/problems/8/submit; echo
+echo "== player pages public once ended; unknown player 404"
+code "$B/contest/1/submissions?user=bob&problem=8"
+curl -s "$B/contest/1/submissions?user=bob" | rg -o 'Best solutions|Personal bests|Accepted at' | sort -u
+code "$B/contest/1/submissions?user=nobody"
 echo "== pages render (status codes)"
 for p in / /login /admin /admin/problems /admin/problems/new /admin/problems/8 /admin/contests/new /admin/contests/1 /admin/contests/1/submissions /contest/1/leaderboard; do printf '%s ' $p; code -b $A $B$p; done
