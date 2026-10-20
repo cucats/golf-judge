@@ -1,4 +1,4 @@
-FROM rust:1.90-bookworm AS builder
+FROM rust:1.90-trixie AS builder
 
 WORKDIR /app
 # Build dependencies against a stub main so this layer stays cached until
@@ -11,7 +11,7 @@ RUN mkdir src && echo 'fn main() {}' > src/main.rs && \
 COPY . .
 RUN cargo build --release && cp target/release/golf /golf
 
-FROM debian:bookworm-slim AS isolate
+FROM debian:trixie-slim AS isolate
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates git build-essential pkg-config \
@@ -22,7 +22,7 @@ RUN git clone --depth 1 --branch v2.7 https://github.com/ioi/isolate.git /tmp/is
     make -C /tmp/isolate isolate && \
     make -C /tmp/isolate install
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 libcap2 libseccomp2 libsystemd0 \
