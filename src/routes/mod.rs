@@ -27,6 +27,21 @@ impl From<Option<&SessionUser>> for Viewer {
     }
 }
 
+#[derive(Template)]
+#[template(path = "tips.html")]
+struct TipsTemplate {
+    viewer: Viewer,
+    content: String,
+}
+
+pub async fn tips(session: Session) -> AppResult {
+    let user = session::get_user(&session).await;
+    render(TipsTemplate {
+        viewer: Viewer::from(user.as_ref()),
+        content: crate::markdown::render_markdown(include_str!("../../content/tips.md")),
+    })
+}
+
 pub struct AppError(String);
 
 impl IntoResponse for AppError {

@@ -1,11 +1,11 @@
 use ammonia::Builder;
-use pulldown_cmark::{Parser, html};
+use pulldown_cmark::{Options, Parser, html};
 
 /// Render markdown to HTML with sanitization
 /// Allows math (MathJax will handle $...$ and $$...$$)
 pub fn render_markdown(markdown: &str) -> String {
     // Parse markdown to HTML
-    let parser = Parser::new(markdown);
+    let parser = Parser::new_ext(markdown, Options::ENABLE_TABLES);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
 

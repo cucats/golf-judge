@@ -65,6 +65,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(contest::index))
+        .route("/tips", get(routes::tips))
         .route("/login", get(auth::login_page).post(auth::login_post))
         .route("/logout", post(auth::logout))
         .route(
