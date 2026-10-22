@@ -22,6 +22,11 @@ export const load = async (event: Parameters<PageServerLoad>[0]) => {
       test_count: p.test_count,
       memory_limit_kb: p.memory_limit_kb,
     },
+    publicCases: p.test_cases.flatMap((test, index) =>
+      test.public
+        ? [{ case: index + 1, input: test.input, output: test.output }]
+        : [],
+    ),
     html: markdown(p.statement),
     bestBytes: best?.bytes ?? null,
   };

@@ -6,6 +6,7 @@
   import Markdown from "#lib/components/Markdown.svelte";
   import Timer from "#lib/components/Timer.svelte";
   import SubmissionEditor from "#lib/components/SubmissionEditor.svelte";
+  import PublicTestCases from "#lib/components/PublicTestCases.svelte";
   let { data }: PageProps = $props();
   let best = $state<number | null>(untrack(() => data.bestBytes));
   $effect(() => {
@@ -52,6 +53,7 @@
         · Best: {best} bytes{/if}
     </p>
     <Markdown html={data.html} />
+    <PublicTestCases cases={data.publicCases} />
   </section>
   <section>
     {#key `${data.contest.id}_${data.problem.id}_${data.user?.username ?? ""}`}<SubmissionEditor
