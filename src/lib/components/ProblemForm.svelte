@@ -4,7 +4,6 @@
   import type { Contest, Problem } from "#lib/types.js";
   import Editor from "./Editor.svelte";
   import Markdown from "./Markdown.svelte";
-  import Code from "./Code.svelte";
   import SubmissionEditor from "./SubmissionEditor.svelte";
   let {
     data,
@@ -61,15 +60,6 @@
           <span class={`badge ${c.status}`}>{c.status}</span>
         </p>{/each}
     </div>{/if}
-  <div class="help-box">
-    <strong>Grading protocol.</strong> Each input/output pair is one test case.
-    The grader and submitted code each run in one sandbox for the whole suite.
-    The grader receives each case's input on stdin, uses <Code
-      code="from submission import f"
-    />, and prints the output to compare with that case's expected output.
-    Trailing whitespace is ignored. The time limit applies to the whole suite.
-    Public cases show failure values; private cases keep those values hidden.
-  </div>
   <form method="POST">
     <div class="field">
       <label for="title">Title</label><input
@@ -83,15 +73,15 @@
     </div>
     <div class="statement-edit-layout">
       <div class="field">
-        <strong>Statement (Markdown)</strong><Editor
+        <strong>Statement</strong><Editor
           mode="markdown"
           name="statement"
-          label="Statement (Markdown)"
+          label="Statement"
           bind:value={p.statement}
         />
       </div>
       <div class="field">
-        <strong>Statement preview</strong>
+        <strong>Preview</strong>
         <Markdown source={p.statement} preview />
       </div>
     </div>
