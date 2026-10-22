@@ -102,9 +102,9 @@
         spellcheck="false"></textarea>
     </div>
     <div class="field">
-      <strong>Grader (Python, main.py)</strong><Editor
+      <strong>Grader</strong><Editor
         name="grader"
-        label="Grader (Python)"
+        label="Grader"
         bind:value={p.grader}
       />
     </div>
