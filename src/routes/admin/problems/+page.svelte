@@ -7,7 +7,9 @@
 <div class="container">
   <a href="/admin">← Dashboard</a>
   <h1>Problem bank</h1>
-  <p><a class="button" href="/admin/problems/new">New problem</a></p>
+  <p class="section-actions">
+    <a class="button" href="/admin/problems/new">New problem</a>
+  </p>
   {#if data.error}<p class="error">{data.error}</p>{/if}
   <div class="card table-scroll">
     <table class="table">

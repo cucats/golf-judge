@@ -138,7 +138,7 @@
         >Create a new problem</a
       >
     </p>
-    <div class="btn-row">
+    <div class="btn-row section-actions">
       <button>{c ? "Save" : "Create contest"}</button><a href="/admin">Cancel</a
       >
     </div>

@@ -132,7 +132,7 @@
         />
       </div>
     </div>
-    <div class="btn-row">
+    <div class="btn-row section-actions">
       <button>Save problem</button><a href="/admin/problems">Cancel</a>
     </div>
   </form>
