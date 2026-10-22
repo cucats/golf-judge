@@ -29,11 +29,11 @@ manage the site through `/admin`.
 
 ## Configuration
 
-| Variable           | Default          | Purpose                                                          |
-| ------------------ | ---------------- | ---------------------------------------------------------------- |
-| `DATABASE_URL`     | required         | Postgres connection string                                       |
-| `JUDGE_WORKERS`    | CPU count        | Maximum submissions judged concurrently                          |
-| `INSECURE_COOKIES` | unset            | Set to allow the session cookie over plain http (local dev only) |
+| Variable           | Default   | Purpose                                                          |
+| ------------------ | --------- | ---------------------------------------------------------------- |
+| `DATABASE_URL`     | required  | Postgres connection string                                       |
+| `JUDGE_WORKERS`    | CPU count | Maximum submissions judged concurrently                          |
+| `INSECURE_COOKIES` | unset     | Set to allow the session cookie over plain http (local dev only) |
 
 ## Problems
 
