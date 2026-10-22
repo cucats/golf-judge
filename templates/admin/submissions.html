@@ -64,7 +64,7 @@
                 <tr id="code-{{ sub.id }}" class="code-row" style="display: none;">
                     <td colspan="6">
                         <div class="muted" style="margin-bottom: 8px;">Code:</div>
-                        <pre><code>{{ sub.code }}</code></pre>
+                        <pre><code class="language-python">{{ sub.code }}</code></pre>
                     </td>
                 </tr>
                 {% endfor %}
@@ -136,12 +136,13 @@
                 <tr id="code-${id}" class="code-row" style="display: ${isExpanded ? 'table-row' : 'none'};">
                     <td colspan="6">
                         <div class="muted" style="margin-bottom: 8px;">Code:</div>
-                        <pre><code>${escapeHtml(sub.code)}</code></pre>
+                        <pre><code class="language-python">${escapeHtml(sub.code)}</code></pre>
                     </td>
                 </tr>`;
             });
 
             tbody.innerHTML = html;
+            window.highlightCode?.(tbody);
         } catch (err) {
             console.error('Failed to refresh submissions:', err);
         }

@@ -52,7 +52,7 @@
             Time limit {{ time_limit_ms }} ms (whole run) &middot; Memory {{ memory_limit_mb }} MB
             <span id="best-wrap"{% if best_bytes.is_none() %} hidden{% endif %}>&middot; Your best: <span id="best-bytes">{% if let Some(best) = best_bytes %}{{ best }}{% endif %}</span> bytes</span>
         </p>
-        <div class="problem-statement">
+        <div class="problem-statement" data-inline-language="python">
             {{ statement_html|safe }}
         </div>
     </div>

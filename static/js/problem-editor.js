@@ -54,6 +54,7 @@
                 const html = await response.text();
                 if (currentRevision !== revision) return;
                 preview.innerHTML = html;
+                window.highlightCode?.(preview);
                 error.hidden = true;
             } catch (err) {
                 if (err.name === 'AbortError' || currentRevision !== revision) return;

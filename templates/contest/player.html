@@ -68,7 +68,7 @@
                 </span>
             </div>
             {% for record in solution.records %}
-                <pre class="code-block" data-record="{{ record.id }}" data-bytes="{{ record.code_length }}"{% if record.id != best.id %} hidden{% endif %}>{{ record.code }}</pre>
+                <pre class="code-block" data-record="{{ record.id }}" data-bytes="{{ record.code_length }}"{% if record.id != best.id %} hidden{% endif %}><code class="language-python">{{ record.code }}</code></pre>
             {% endfor %}
             <div class="solution-foot">
                 {% if solution.records.len() > 1 %}
@@ -117,7 +117,7 @@
                         <td style="text-align: right;" class="muted">{{ attempt.time }} ms</td>
                     </tr>
                     <tr class="code-row" id="code-{{ attempt.id }}" hidden>
-                        <td colspan="5"><pre>{{ attempt.code }}</pre></td>
+                        <td colspan="5"><pre><code class="language-python">{{ attempt.code }}</code></pre></td>
                     </tr>
                 {% else %}
                     <tr><td colspan="5" class="muted">No submissions.</td></tr>

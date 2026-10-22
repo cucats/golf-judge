@@ -15,6 +15,7 @@ pub fn render_markdown(markdown: &str) -> String {
         .add_tags(&["span", "div"]) // For math blocks
         .add_tag_attributes("span", &["class"]) // For inline math styling
         .add_tag_attributes("div", &["class"]) // For display math styling
+        .add_tag_attributes("code", &["class"]) // Preserve fenced code languages
         .clean(&html_output)
         .to_string()
 }

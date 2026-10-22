@@ -671,6 +671,19 @@ button.copy-btn {
     overflow-wrap: anywhere;
 }
 
+/* Syntax colours match the editors without changing inline or block layout. */
+.hljs { color: #c5c8c6; }
+.hljs-comment, .hljs-quote { color: #969896; }
+.hljs-keyword, .hljs-selector-tag { color: #b294bb; }
+.hljs-string, .hljs-regexp, .hljs-addition { color: #b5bd68; }
+.hljs-number, .hljs-literal, .hljs-attr, .hljs-variable { color: #de935f; }
+.hljs-title, .hljs-section, .hljs-selector-id { color: #81a2be; }
+.hljs-built_in, .hljs-type, .hljs-class { color: #f0c674; }
+.hljs-meta, .hljs-symbol, .hljs-bullet, .hljs-link { color: #8abeb7; }
+.hljs-name, .hljs-tag, .hljs-deletion { color: #cc6666; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: bold; }
+
 .problem-statement {
     line-height: 1.75;
 }

@@ -43,7 +43,7 @@
     <div class="help-box">
         <strong>Grading protocol.</strong> The contestant's code defines a function <code>f</code> in
         <code>submission.py</code>. The grader (<code>main.py</code>) receives the test input on stdin, must
-        <code>from submission import f</code>, call <code>f</code> once per test case, and print one line of
+        <code class="language-python">from submission import f</code>, call <code>f</code> once per test case, and print one line of
         output per case. Stdout is compared line-by-line against the expected output (trailing whitespace is
         ignored). Before each case, the grader should write <code>TESTCASE n: &lt;input description&gt;</code>
         to stderr so contestants can see which case failed. The time limit applies to the whole run, across all
@@ -65,7 +65,7 @@
             </div>
             <div class="field">
                 <strong id="preview-label">Statement preview</strong>
-                <div id="statement-preview" class="card problem-statement statement-preview" aria-labelledby="preview-label">
+                <div id="statement-preview" class="card problem-statement statement-preview" data-inline-language="python" aria-labelledby="preview-label">
                     {{ statement_html|safe }}
                 </div>
                 <p id="preview-error" class="error" role="status" hidden></p>
