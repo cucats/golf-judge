@@ -25,7 +25,6 @@ isolate needs namespaces to sandbox submissions.
 | ------------------ | ---------------- | ---------------------------------------------------------------- |
 | `DATABASE_URL`     | required         | Postgres connection string                                       |
 | `ADMIN_PASSWORD`   | random, printed  | Password for `/admin/login`                                      |
-| `PROBLEMS_DIR`     | `problems`       | Folders imported into the problem bank on startup (once each)    |
 | `JUDGE_WORKERS`    | CPU count        | Maximum submissions judged concurrently                          |
 | `INSECURE_COOKIES` | unset            | Set to allow the session cookie over plain http (local dev only) |
 
@@ -39,9 +38,7 @@ by line with the expected output. Before each case the grader should write
 `TESTCASE n: <description>` to stderr so contestants can see which case
 failed.
 
-Folders in `problems/` (`statement.md`, `input.txt`, `output.txt`,
-`grader.py`) are imported on startup. Problems edited in the UI are never
-overwritten by the import.
+Problems are stored in PostgreSQL and managed through the admin problem bank.
 
 ## Tests
 

@@ -47,7 +47,6 @@ COPY --from=builder /golf .
 COPY migrations ./migrations
 COPY templates ./templates
 COPY static ./static
-COPY problems ./problems
 
 EXPOSE 3000
 

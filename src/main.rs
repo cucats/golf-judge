@@ -40,13 +40,6 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
-    let problems_dir = env::var("PROBLEMS_DIR").unwrap_or_else(|_| "problems".to_string());
-    match problems::import_from_filesystem(&pool, problems_dir.as_ref()).await {
-        Ok(0) => {}
-        Ok(n) => println!("Imported {n} problem(s) from {problems_dir}/"),
-        Err(e) => eprintln!("Problem import failed: {e}"),
-    }
-
     let state = AppState {
         db: pool,
         admin_password,
