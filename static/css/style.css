@@ -814,7 +814,7 @@ a.button {
 }
 .editor-controls {
 	justify-content: space-between;
-	margin: 12px 0;
+	margin: 4px 0 12px;
 }
 .judge-output {
 	background: #1e293b;

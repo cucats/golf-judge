@@ -169,8 +169,7 @@
   <Editor bind:value={code} name="code" height="450px" {storageKey} />
   <div class="btn-row editor-controls">
     <span class="muted"
-      >{bytes} bytes{#if best !== null}
-        · Best: {best} bytes{/if}</span
+      >{`${bytes} bytes${best === null ? "" : ` · Best: ${best} bytes`}`}</span
     >
     {#if blocked}<strong class="error">{blocked}</strong>{:else}<button
         disabled={busy}>{busy ? "Grading…" : button}</button
@@ -185,3 +184,9 @@
   {submittedCode}
   {publicCases}
 />
+
+<style>
+  form {
+    gap: 0;
+  }
+</style>
