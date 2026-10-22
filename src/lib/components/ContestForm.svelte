@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import Timestamp from "./Timestamp.svelte";
-  import { durationLabel } from "#lib/types.js";
+  import { durationLabel, label } from "#lib/types.js";
   import type { Contest, ContestProblem, ProblemSummary } from "#lib/types.js";
   let {
     data,
@@ -17,10 +18,39 @@
       error: string;
       name: string;
       duration: string;
-      positions: Record<string, string>;
+      problemIds: number[];
     } | null;
   } = $props();
   const c = $derived(data.contest);
+  const editable = $derived(!c || c.status === "pending");
+  const initialIds = () =>
+    [...new Set(form?.problemIds ?? data.selected.map((p) => p.id))].filter(
+      (id) => data.choices.some((p) => p.id === id),
+    );
+  let problemIds = $state<number[]>(untrack(initialIds));
+  let candidate = $state<number | undefined>();
+  $effect(() => {
+    problemIds = initialIds();
+    candidate = undefined;
+  });
+  const available = $derived(
+    data.choices.filter((p) => !problemIds.includes(p.id)),
+  );
+  function addProblem() {
+    if (!editable || !available.some((p) => p.id === candidate)) return;
+    problemIds = [...problemIds, candidate!];
+    candidate = undefined;
+  }
+  function moveProblem(index: number, direction: number) {
+    const target = index + direction;
+    if (!editable || target < 0 || target >= problemIds.length) return;
+    const reordered = [...problemIds];
+    [reordered[index], reordered[target]] = [
+      reordered[target],
+      reordered[index],
+    ];
+    problemIds = reordered;
+  }
 </script>
 
 <svelte:head><title>{c?.name ?? "New Contest"} - Admin</title></svelte:head>
@@ -102,45 +132,115 @@
       <p class="muted">Use 0 for no time limit.</p>
     </div>
     <h3>Problems</h3>
-    <p class="muted">
-      Enter a position (1, 2, 3…) to include a problem; leave blank to exclude.
-    </p>
-    {#if c && c.status !== "pending"}<p class="notice">
+    {#if !editable}<p class="notice">
         The problem set is locked once the contest has started.
       </p>{/if}
-    <table class="table problem-choice-table">
-      <thead><tr><th>Position</th><th>Title</th></tr></thead><tbody
-        >{#each data.choices as p}{@const order = data.selected.find(
-            (s) => s.id === p.id,
-          )?.problem_order}<tr
-            ><td
-              ><input
-                aria-label={`Position for ${p.title}`}
-                type="number"
-                min="1"
-                name={`pos_${p.id}`}
-                value={form?.positions[`pos_${p.id}`] ??
-                  (order === undefined ? "" : order + 1)}
-                disabled={!!c && c.status !== "pending"}
-              /></td
-            ><td
-              ><a
-                href={`/admin/problems/${p.id}`}
-                target="_blank"
-                rel="noreferrer">{p.title}</a
-              ></td
-            ></tr
-          >{/each}</tbody
-      >
-    </table>
-    <p>
-      <a href="/admin/problems/new" target="_blank" rel="noreferrer"
-        >Create a new problem</a
-      >
-    </p>
+    <ol class="contest-problems">
+      {#each problemIds as pid, i (pid)}
+        {@const p = data.choices.find((p) => p.id === pid)!}
+        <li>
+          <input type="hidden" name="problem_ids" value={pid} />
+          <span class="pc-label">{label(i)}.</span>
+          <a
+            class="problem-title"
+            href={`/admin/problems/${pid}`}
+            target="_blank"
+            rel="noreferrer">{p.title}</a
+          >
+          {#if editable}<div class="btn-row">
+              <button
+                type="button"
+                class="secondary"
+                aria-label={`Move ${p.title} up`}
+                disabled={i === 0}
+                onclick={() => moveProblem(i, -1)}>↑</button
+              >
+              <button
+                type="button"
+                class="secondary"
+                aria-label={`Move ${p.title} down`}
+                disabled={i === problemIds.length - 1}
+                onclick={() => moveProblem(i, 1)}>↓</button
+              >
+              <button
+                type="button"
+                class="secondary"
+                aria-label={`Remove ${p.title}`}
+                onclick={() =>
+                  (problemIds = problemIds.filter((id) => id !== pid))}
+                >Remove</button
+              >
+            </div>{/if}
+        </li>
+      {:else}<li class="muted">No problems added.</li>{/each}
+    </ol>
+    {#if editable}
+      <div class="btn-row add-problem">
+        <select
+          aria-label="Problem to add"
+          bind:value={candidate}
+          disabled={!available.length}
+        >
+          <option value={undefined} disabled
+            >{available.length
+              ? "Choose a problem"
+              : "No more problems to add"}</option
+          >
+          {#each available as p}<option value={p.id}>{p.title}</option>{/each}
+        </select>
+        <button
+          type="button"
+          disabled={candidate === undefined}
+          onclick={addProblem}>Add problem</button
+        >
+      </div>
+      <p>
+        <a href="/admin/problems/new" target="_blank" rel="noreferrer"
+          >Create a new problem</a
+        >
+      </p>
+    {/if}
     <div class="btn-row section-actions">
       <button>{c ? "Save" : "Create contest"}</button><a href="/admin">Cancel</a
       >
     </div>
   </form>
 </div>
+
+<style>
+  .contest-problems {
+    list-style: none;
+    margin: 12px 0;
+  }
+  .contest-problems li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #334155;
+  }
+  .problem-title {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .contest-problems .btn-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .contest-problems button {
+    padding: 4px 8px;
+  }
+  .contest-problems button:disabled,
+  .add-problem button:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .add-problem {
+    margin-bottom: 12px;
+  }
+  .add-problem select {
+    flex: 1;
+    min-width: 0;
+  }
+</style>

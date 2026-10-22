@@ -1,7 +1,7 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { fail, redirect } from "@sveltejs/kit";
 import { requireAdmin } from "./auth.js";
-import { pool, problem, query, one, id } from "./db.js";
+import { pool, problem, query, one } from "./db.js";
 import type { Contest, Problem } from "#lib/types.js";
 import { normalize, now } from "#lib/types.js";
 export const defaultProblem: Problem = {
@@ -78,20 +78,21 @@ export async function saveContest(event: RequestEvent, cid = 0) {
   const f = await event.request.formData(),
     name = String(f.get("name") ?? "").trim(),
     duration = String(f.get("duration") ?? "").trim();
-  const positions: Record<string, string> = {};
-  const selected: { position: number; pid: number }[] = [];
+  const values = f.getAll("problem_ids");
+  const problemIds = values.map(Number);
   let message = "";
-  for (const [key, value] of f)
-    if (/^pos_\d+$/.test(key)) {
-      positions[key] = String(value);
-      if (String(value).trim()) {
-        const position = Number(value),
-          pid = id(key.slice(4));
-        if (!Number.isSafeInteger(position) || position < 1)
-          message = "Positions must be positive whole numbers";
-        else selected.push({ position, pid });
-      }
-    }
+  if (
+    values.some(
+      (v, i) =>
+        typeof v !== "string" ||
+        !/^\d+$/.test(v) ||
+        problemIds[i] < 1 ||
+        problemIds[i] > 2147483647,
+    )
+  )
+    message = "Invalid problem selection";
+  else if (new Set(problemIds).size !== problemIds.length)
+    message = "A problem can only be added once";
   if (!name) message = "Contest name is required";
   else if ([...name].length > 100)
     message = "Contest name must be at most 100 characters";
@@ -99,8 +100,7 @@ export async function saveContest(event: RequestEvent, cid = 0) {
     message = "Duration must be a whole number of minutes, 0 or more";
   else if (Number(duration) * 60 > 2147483647)
     message = "Duration is too large";
-  if (message) return fail(400, { error: message, name, duration, positions });
-  selected.sort((a, b) => a.position - b.position || a.pid - b.pid);
+  if (message) return fail(400, { error: message, name, duration, problemIds });
   const tx = await pool.connect();
   try {
     await tx.query("BEGIN");
@@ -127,11 +127,24 @@ export async function saveContest(event: RequestEvent, cid = 0) {
         )
       ).rows[0].id;
     if (pending) {
+      const existing = await tx.query<{ id: number }>(
+        "SELECT id FROM problems WHERE id=ANY($1::int[]) FOR KEY SHARE",
+        [problemIds],
+      );
+      if (existing.rows.length !== problemIds.length) {
+        await tx.query("ROLLBACK");
+        return fail(400, {
+          error: "A selected problem no longer exists",
+          name,
+          duration,
+          problemIds,
+        });
+      }
       await tx.query("DELETE FROM contest_problems WHERE contest_id=$1", [cid]);
-      for (const [i, p] of selected.entries())
+      for (const [i, pid] of problemIds.entries())
         await tx.query(
           "INSERT INTO contest_problems (contest_id,problem_id,problem_order) VALUES ($1,$2,$3)",
-          [cid, p.pid, i],
+          [cid, pid, i],
         );
     }
     await tx.query("COMMIT");
