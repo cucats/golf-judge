@@ -175,7 +175,6 @@
     border-radius: 8px;
     overflow: hidden;
     overflow-wrap: anywhere;
-    font-family: system-ui, sans-serif;
   }
   .run-summary {
     padding: 16px;
@@ -208,6 +207,7 @@
     font-variant-numeric: tabular-nums;
   }
   .run-metrics dd span {
+    margin-left: 4px;
     font-size: 0.875rem;
     font-weight: 400;
   }
