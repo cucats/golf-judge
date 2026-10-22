@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import Code from "#lib/components/Code.svelte";
   import Timestamp from "#lib/components/Timestamp.svelte";
@@ -11,7 +12,14 @@
 <svelte:head><title>Submissions - {data.contest.name}</title></svelte:head>
 <Poll active={accepting(data.contest)} />
 <div class="container">
-  <a href={`/admin/contests/${data.contest.id}`}>← {data.contest.name}</a>
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: "Admin", href: "/admin" },
+      { label: data.contest.name, href: `/admin/contests/${data.contest.id}` },
+      { label: "Submissions" },
+    ]}
+  />
   <h1>{data.contest.name} — Submissions</h1>
   <form method="GET" class="btn-row card">
     <div class="field">

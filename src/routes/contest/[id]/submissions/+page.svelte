@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import Code from "#lib/components/Code.svelte";
   import Timestamp from "#lib/components/Timestamp.svelte";
@@ -50,9 +51,14 @@
   ><title>{data.entry.username} - {data.contest.name}</title></svelte:head
 >
 <div class="container">
-  <a class="muted" href={`/contest/${data.contest.id}/leaderboard`}
-    >← {data.contest.name} standings</a
-  >
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: data.contest.name },
+      { label: "Leaderboard", href: `/contest/${data.contest.id}/leaderboard` },
+      { label: data.entry.username },
+    ]}
+  />
   <div class="player-head">
     <h1 class="player-name">{data.entry.username}</h1>
     <div class="stat-row">

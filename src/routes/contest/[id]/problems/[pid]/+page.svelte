@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import { untrack } from "svelte";
   import { accepting, label } from "#lib/types.js";
@@ -28,10 +29,18 @@
   ></svelte:head
 >
 <div class="container">
-  <div class="btn-row">
-    <a href={`/contest/${data.contest.id}/problems`}>Problems</a><a
-      href={`/contest/${data.contest.id}/leaderboard`}>Leaderboard</a
-    ><Timer contest={data.contest} />
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: data.contest.name },
+      { label: "Problems", href: `/contest/${data.contest.id}/problems` },
+      { label: `${label(data.problem.problem_order)}. ${data.problem.title}` },
+    ]}
+  />
+  <div class="btn-row page-links">
+    <a href={`/contest/${data.contest.id}/leaderboard`}>Leaderboard</a><Timer
+      contest={data.contest}
+    />
   </div>
 </div>
 <div class="problem-layout">

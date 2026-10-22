@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import { durationLabel } from "#lib/types.js";
   let { data }: PageProps = $props();
@@ -6,6 +7,7 @@
 
 <svelte:head><title>Admin - CUCaTS Code Golf</title></svelte:head>
 <div class="container">
+  <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Admin" }]} />
   <h1>Admin</h1>
   <div class="btn-row section-actions">
     <a class="button" href="/admin/contests/new">New contest</a><a

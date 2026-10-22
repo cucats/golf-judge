@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import { untrack } from "svelte";
   import type { Contest, Problem } from "#lib/types.js";
   import Editor from "./Editor.svelte";
@@ -27,9 +28,14 @@
   ><title>{p.id ? p.title : "New Problem"} - Admin</title></svelte:head
 >
 <div class="container">
-  <div class="btn-row">
-    <a href="/admin">Dashboard</a><a href="/admin/problems">Problem bank</a>
-  </div>
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: "Admin", href: "/admin" },
+      { label: "Problem bank", href: "/admin/problems" },
+      { label: p.id ? p.title : "New problem" },
+    ]}
+  />
   <h1>{p.id ? p.title : "New Problem"}</h1>
   {#if data.saved && !form?.error}<p class="success-notice">
       Saved.

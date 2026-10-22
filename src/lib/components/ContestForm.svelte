@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import { untrack } from "svelte";
   import Timestamp from "./Timestamp.svelte";
   import { durationLabel, label } from "#lib/types.js";
@@ -55,7 +56,13 @@
 
 <svelte:head><title>{c?.name ?? "New Contest"} - Admin</title></svelte:head>
 <div class="container">
-  <a href="/admin">← Dashboard</a>
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: "Admin", href: "/admin" },
+      { label: c?.name ?? "New contest" },
+    ]}
+  />
   <h1>{c?.name ?? "New Contest"}</h1>
   {#if c}<div class="card">
       <p>

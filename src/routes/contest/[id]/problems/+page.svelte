@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import Timer from "#lib/components/Timer.svelte";
   import { accepting, label } from "#lib/types.js";
@@ -7,7 +8,14 @@
 
 <svelte:head><title>Problems - {data.contest.name}</title></svelte:head>
 <div class="container">
-  <div class="btn-row">
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: data.contest.name },
+      { label: "Problems" },
+    ]}
+  />
+  <div class="btn-row page-links">
     <a href={`/contest/${data.contest.id}/leaderboard`}>Leaderboard</a><Timer
       contest={data.contest}
     />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import Poll from "#lib/components/Poll.svelte";
   import Timer from "#lib/components/Timer.svelte";
@@ -9,7 +10,14 @@
 <svelte:head><title>Leaderboard - {data.contest.name}</title></svelte:head>
 <Poll active={accepting(data.contest)} />
 <div class="container">
-  <div class="btn-row">
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: data.contest.name },
+      { label: "Leaderboard" },
+    ]}
+  />
+  <div class="btn-row page-links">
     <a href={`/contest/${data.contest.id}/problems`}>Problems</a><Timer
       contest={data.contest}
     />

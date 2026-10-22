@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   import Poll from "#lib/components/Poll.svelte";
   import { durationLabel } from "#lib/types.js";
@@ -8,6 +9,13 @@
 <svelte:head><title>Waiting Room - {data.contest.name}</title></svelte:head>
 <Poll />
 <div class="container">
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: data.contest.name },
+      { label: "Waiting room" },
+    ]}
+  />
   <h1>Waiting Room</h1>
   <div class="card">
     <h2>{data.contest.name}</h2>

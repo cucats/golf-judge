@@ -1,11 +1,18 @@
 <script lang="ts">
+  import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
   import type { PageProps } from "./$types";
   let { data }: PageProps = $props();
 </script>
 
 <svelte:head><title>Problem bank - Admin</title></svelte:head>
 <div class="container">
-  <a href="/admin">← Dashboard</a>
+  <Breadcrumbs
+    items={[
+      { label: "Home", href: "/" },
+      { label: "Admin", href: "/admin" },
+      { label: "Problem bank" },
+    ]}
+  />
   <h1>Problem bank</h1>
   <p class="section-actions">
     <a class="button" href="/admin/problems/new">New problem</a>

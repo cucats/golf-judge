@@ -331,6 +331,10 @@ label {
 	display: inline;
 }
 
+.page-links {
+	margin-bottom: 16px;
+}
+
 .field {
 	display: flex;
 	flex-direction: column;
