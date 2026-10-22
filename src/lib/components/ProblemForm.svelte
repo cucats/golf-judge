@@ -27,16 +27,9 @@
   );
   $effect(() => {
     p = copyProblem(form?.problem ?? data.problem);
-    selectedCase = 0;
   });
-  let selectedCase = $state(0);
   function addCase() {
     p.test_cases.push({ input: "", output: "", public: true });
-    selectedCase = p.test_cases.length - 1;
-  }
-  function removeCase() {
-    p.test_cases.splice(selectedCase, 1);
-    selectedCase = Math.max(0, Math.min(selectedCase, p.test_cases.length - 1));
   }
 </script>
 
@@ -108,47 +101,66 @@
         name="test_cases"
         value={JSON.stringify(p.test_cases)}
       />
-      <strong>Test cases · {p.test_cases.length}</strong>
-      <div class="btn-row case-controls">
-        {#if p.test_cases.length}
-          <label for="test-case">Case</label>
-          <select id="test-case" bind:value={selectedCase}>
-            {#each p.test_cases as test, index}<option value={index}
-                >{index + 1}{test.public ? " · public" : ""}</option
-              >{/each}
-          </select>
-        {/if}
+      <div class="btn-row case-heading">
+        <strong>Test cases · {p.test_cases.length}</strong>
         <button type="button" onclick={addCase}>Add case</button>
-        {#if p.test_cases.length}<button
-            type="button"
-            class="danger"
-            onclick={removeCase}>Remove case</button
-          >{/if}
       </div>
-      {#if p.test_cases[selectedCase]}
-        <div class="case-fields">
-          <div class="field">
-            <label for="test-input">Input</label><textarea
-              id="test-input"
-              bind:value={p.test_cases[selectedCase].input}
-              class="mono code-area"
-              spellcheck="false"></textarea>
-          </div>
-          <div class="field">
-            <label for="test-output">Expected output</label><textarea
-              id="test-output"
-              bind:value={p.test_cases[selectedCase].output}
-              class="mono code-area"
-              spellcheck="false"></textarea>
-          </div>
-        </div>
-        <label class="case-visibility"
-          ><input
-            type="checkbox"
-            bind:checked={p.test_cases[selectedCase].public}
-          /> Public case</label
-        >
-      {/if}
+      <ol class="case-list">
+        {#each p.test_cases as test, index (test)}
+          <li class="test-case">
+            <div class="btn-row case-controls">
+              <strong>Case {index + 1}</strong>
+              <fieldset
+                class="case-visibility"
+                aria-label={`Case ${index + 1} visibility`}
+              >
+                <legend class="sr-only">Visibility</legend>
+                <label
+                  ><input
+                    type="radio"
+                    name={`visibility-${index}`}
+                    value={true}
+                    bind:group={test.public}
+                  /> Public</label
+                >
+                <label
+                  ><input
+                    type="radio"
+                    name={`visibility-${index}`}
+                    value={false}
+                    bind:group={test.public}
+                  /> Private</label
+                >
+              </fieldset>
+              <button
+                type="button"
+                class="danger"
+                aria-label={`Remove case ${index + 1}`}
+                onclick={() => p.test_cases.splice(index, 1)}>Remove</button
+              >
+            </div>
+            <div class="case-fields">
+              <div class="field">
+                <label for={`test-input-${index}`}>Input</label><textarea
+                  id={`test-input-${index}`}
+                  aria-label={`Case ${index + 1} input`}
+                  bind:value={test.input}
+                  class="mono code-area"
+                  spellcheck="false"></textarea>
+              </div>
+              <div class="field">
+                <label for={`test-output-${index}`}>Expected output</label
+                ><textarea
+                  id={`test-output-${index}`}
+                  aria-label={`Case ${index + 1} expected output`}
+                  bind:value={test.output}
+                  class="mono code-area"
+                  spellcheck="false"></textarea>
+              </div>
+            </div>
+          </li>
+        {/each}
+      </ol>
     </section>
     <div class="field">
       <strong>Grader</strong><Editor
@@ -219,24 +231,38 @@
   .test-cases {
     margin: 20px 0;
   }
-  .case-controls {
-    margin: 12px 0;
+  .case-heading {
+    margin-bottom: 12px;
   }
-  .case-controls select {
-    width: auto;
+  .case-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 20px;
+  }
+  .case-controls {
+    margin-bottom: 8px;
+  }
+  .case-visibility {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 12px;
+  }
+  .case-visibility label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .case-fields textarea {
+    min-height: 80px;
   }
   .case-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
-  }
-  .case-visibility {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .case-visibility input {
-    width: auto;
   }
   @media (max-width: 700px) {
     .case-fields {
