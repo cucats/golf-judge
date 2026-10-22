@@ -52,6 +52,17 @@ export interface SubmissionView extends Submission {
   problem_order: number | null;
   problem_title: string;
 }
+export interface TestCaseResult {
+  case: number;
+  public: boolean;
+  verdict: string;
+  input?: string;
+  expected?: string;
+  actual?: string;
+  error?: string;
+  line?: number;
+  column?: number;
+}
 export interface JudgeResult {
   verdict: string;
   time: number;
@@ -60,6 +71,7 @@ export interface JudgeResult {
   passed?: number;
   completed?: number;
   total?: number;
+  cases?: TestCaseResult[];
   failure?: {
     case: number;
     public: boolean;

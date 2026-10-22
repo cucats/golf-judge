@@ -116,7 +116,8 @@ describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
       "def f(x):\n if x==1:return 2\n raise ValueError(str(x))",
     );
     expect(result.verdict).toBe("RE");
-    expect(result.passed).toBe((result.completed ?? 0) - 1);
+    expect(result.passed).toBe(1);
+    expect(result.completed).toBe(3);
     expect(JSON.stringify(result)).not.toContain("948723");
     expect(result.failure?.line).toBe(3);
     const forged = await judge(
@@ -132,6 +133,79 @@ describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
     expect(forged.verdict).toBe("WA");
     expect(forged.failure?.case).toBe(1);
     expect(JSON.stringify(forged)).not.toContain("secret");
+  });
+  test("runtime errors in any case leave the remaining cases runnable", async () => {
+    for (const [index, testCase] of problem.test_cases.entries()) {
+      const progress: JudgeProgress[] = [];
+      const result = await judge(
+        problem,
+        `def f(x):\n if x==${testCase.input}:raise ValueError('case failure')\n return 2*x`,
+        (update) => {
+          progress.push(update);
+        },
+      );
+      expect(result.verdict).toBe("RE");
+      expect(result.failure?.case).toBe(index + 1);
+      expect(result.passed).toBe(2);
+      expect(result.completed).toBe(3);
+      expect(progress.at(-1)?.completed).toBe(3);
+    }
+  });
+  test("runtime errors take precedence over wrong answers while later cases still pass", async () => {
+    const result = await judge(
+      {
+        ...problem,
+        test_cases: problem.test_cases.map((test, index) => ({
+          ...test,
+          public: index !== 1,
+        })),
+      },
+      "def f(x):\n if x==948723:raise ValueError('private')\n return 6 if x==3 else 0",
+    );
+    expect(result.verdict).toBe("RE");
+    expect(result.failure?.case).toBe(2);
+    expect(result.passed).toBe(1);
+    expect(result.completed).toBe(3);
+    expect(result.cases?.map((test) => test.verdict)).toEqual([
+      "WA",
+      "RE",
+      "AC",
+    ]);
+    expect(result.cases?.[0]).toMatchObject({
+      case: 1,
+      input: "1",
+      expected: "2",
+      actual: "0\n",
+    });
+    expect(result.cases?.[1]).toEqual({
+      case: 2,
+      public: false,
+      verdict: "RE",
+      error: "ValueError",
+      line: 2,
+    });
+    expect(result.cases?.[2]).toMatchObject({
+      case: 3,
+      input: "3",
+      expected: "6",
+      actual: "6\n",
+    });
+    expect(JSON.stringify(result)).not.toContain("private");
+  });
+  test("submission import failures fail each case without stopping progress", async () => {
+    const result = await judge(
+      problem,
+      "raise ValueError('cannot load')\nf=lambda x:2*x",
+    );
+    expect(result.verdict).toBe("RE");
+    expect(result.failure?.case).toBe(1);
+    expect(result.passed).toBe(0);
+    expect(result.completed).toBe(3);
+    expect(result.cases?.map((test) => test.verdict)).toEqual([
+      "RE",
+      "RE",
+      "RE",
+    ]);
   });
   test("contestants cannot read grader files or produce judge output directly", async () => {
     const result = await judge(problem, "f=lambda x:open('main.py').read()");
@@ -186,6 +260,11 @@ f=lambda x:0`,
     const result = await judge(problem, "def f(x):\n while True:pass");
     expect(result.verdict).toBe("TLE");
     expect(result.passed).toBe(0);
+    expect(result.cases?.map((test) => test.verdict)).toEqual([
+      "TLE",
+      "NOT_RUN",
+      "NOT_RUN",
+    ]);
   }, 10000);
   test("parallel submissions use independent paired boxes", async () => {
     const results = await Promise.all(

@@ -223,6 +223,11 @@
           storageKey={`admin_test_${p.id}`}
           pendingStorageKey={`admin_test_${p.id}_${data.user?.username ?? ""}`}
           button="Run"
+          publicCases={data.problem.test_cases.flatMap((test, index) =>
+            test.public
+              ? [{ case: index + 1, input: test.input, output: test.output }]
+              : [],
+          )}
         />
       </section>{/key}{/if}
 </div>

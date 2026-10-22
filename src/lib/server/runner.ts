@@ -16,6 +16,7 @@ import type {
   JudgeProgress,
   Problem,
   TestCase,
+  TestCaseResult,
 } from "#lib/types.js";
 const exec = promisify(execFile);
 const configured = Number(process.env.JUDGE_WORKERS);
@@ -169,6 +170,14 @@ async function run(
   let passed = 0,
     completed = 0;
   let failed: Omit<JudgeResult, "code_length"> | undefined;
+  const cases: TestCaseResult[] = problem.test_cases.map((test, index) => ({
+    case: index + 1,
+    public: test.public,
+    verdict: "NOT_RUN",
+    ...(test.public
+      ? { input: truncate(test.input), expected: truncate(test.output) }
+      : {}),
+  }));
   let progressWork = Promise.resolve();
   let lastProgress = 0;
   const progress = (force = false) => {
@@ -245,7 +254,8 @@ async function run(
     const contestant = start(0),
       driver = start(1);
     const stop = () => {
-      for (const child of children) child.kill("SIGKILL");
+      // Let isolate's keeper terminate the sandboxed processes and close their pipes.
+      for (const child of children) child.kill("SIGTERM");
     };
     let timeout = false,
       protocolFailure = false;
@@ -287,18 +297,36 @@ async function run(
           if (frame.length > cap || completed >= problem.test_count)
             throw new Error("Invalid grader output");
           const message = JSON.parse(frame.toString());
-          if (!message || typeof message.output !== "string")
+          if (
+            !message ||
+            typeof message.output !== "string" ||
+            typeof message.failed !== "boolean"
+          )
             throw new Error("Invalid grader output");
           const result = evaluate(
-            "OK",
+            message.failed || error ? "RE" : "OK",
             0,
             message.output,
             problem.test_cases[completed],
             completed + 1,
+            error,
           );
+          cases[completed] = {
+            ...cases[completed],
+            ...result.failure,
+            verdict: result.verdict,
+            ...(problem.test_cases[completed].public
+              ? { actual: truncate(message.output) }
+              : {}),
+          };
           completed++;
           if (result.verdict === "AC") passed++;
-          else failed ??= result;
+          else if (
+            !failed ||
+            (result.verdict === "RE" && failed.verdict === "WA")
+          )
+            failed = result;
+          error = undefined;
           progress();
           sendCase();
         } catch {
@@ -416,6 +444,12 @@ async function run(
         index + 1,
         error,
       );
+      if (cases[index].verdict === "AC") passed--;
+      cases[index] = {
+        ...cases[index],
+        ...failed.failure,
+        verdict: failed.verdict,
+      };
       if (completed < problem.test_count) completed++;
     }
     progress(true);
@@ -428,10 +462,11 @@ async function run(
       passed,
       completed,
       total: problem.test_count,
+      cases,
     };
   } finally {
     clearTimeout(watchdog);
-    for (const child of children) child.kill("SIGKILL");
+    for (const child of children) child.kill("SIGTERM");
     await Promise.all(metadataPaths.map((path) => rm(path, { force: true })));
     await Promise.all(
       boxes.map((box) => isolate(box, "--cleanup").catch(() => {})),

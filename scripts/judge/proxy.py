@@ -7,7 +7,8 @@ _responses = os.fdopen(4, "r")
 
 
 class SubmissionFailure(BaseException):
-    pass
+    def __init__(self, recoverable=False):
+        self.recoverable = recoverable
 
 
 def __getattr__(name):
@@ -18,6 +19,8 @@ def __getattr__(name):
         send(_requests, {"name": name, "args": pack(args), "kwargs": pack(kwargs)})
         try:
             response = receive(_responses)
+            if type(response) is dict and "error" in response:
+                raise SubmissionFailure(recoverable=True)
             if type(response) is not dict or "result" not in response:
                 raise ValueError("Submission failed")
             return unpack(response["result"])

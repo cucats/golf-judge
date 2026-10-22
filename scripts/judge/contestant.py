@@ -21,11 +21,11 @@ def failure(error):
     return {"error": {"kind": type(error).__name__, "message": str(error)[:4096], "line": line, "column": column}}
 
 
+load_error = None
 try:
     import submission
 except BaseException as error:
-    send(_responses, failure(error))
-    sys.exit(1)
+    load_error = failure(error)
 
 while True:
     try:
@@ -33,8 +33,10 @@ while True:
     except ValueError:
         break
     try:
+        if load_error is not None:
+            send(_responses, load_error)
+            continue
         result = getattr(submission, request["name"])(*unpack(request["args"]), **unpack(request["kwargs"]))
         send(_responses, {"result": pack(bool(result) if sys.argv[1:] == ["truthy"] else result)})
     except BaseException as error:
         send(_responses, failure(error))
-        break

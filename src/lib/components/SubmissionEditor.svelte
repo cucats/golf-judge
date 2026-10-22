@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Editor from "./Editor.svelte";
-  import Code from "./Code.svelte";
+  import SubmissionFeedback from "./SubmissionFeedback.svelte";
   import type { JudgeProgress, JudgeResult } from "#lib/types.js";
   let {
     action,
@@ -11,6 +11,7 @@
     best = null,
     onaccepted,
     button = "Submit",
+    publicCases = [],
   }: {
     action: string;
     storageKey?: string;
@@ -19,6 +20,7 @@
     best?: number | null;
     onaccepted?: (bytes: number) => void;
     button?: string;
+    publicCases?: { case: number; input: string; output: string }[];
   } = $props();
   type Pending = { id: string; events: string; code: string; action: string };
   let code = $state(""),
@@ -26,7 +28,7 @@
     busy = $state(false),
     result = $state<JudgeResult | null>(null),
     progress = $state<JudgeProgress | null>(null),
-    message = $state("Submit a solution to see its result."),
+    message = $state("Ready"),
     reconnecting = $state(false);
   let form: HTMLFormElement;
   let stream: EventSource | null = null;
@@ -175,88 +177,11 @@
       >{/if}
   </div>
 </form>
-<section class="feedback" aria-label="Submission feedback">
-  <div role="status" aria-live="polite">
-    {#if result}
-      <strong class={`verdict-${result.verdict.toLowerCase()}`}
-        >{result.verdict}</strong
-      >
-      <span class="muted">
-        · {result.code_length} bytes · {result.time} ms</span
-      >
-      {#if result.verdict === "TLE"}<p>Time limit exceeded.</p>{/if}
-      {#if result.verdict === "AC" && result.improvement != null && result.improvement > 0}
-        <span class="verdict-ac">
-          · {result.improvement} bytes shorter than your previous best</span
-        >
-      {/if}
-      {#if result.total != null && result.passed != null}
-        <p>{result.passed} / {result.total} tests passed</p>
-      {/if}
-    {:else if progress}
-      <strong>{progress.state === "queued" ? "Queued" : "Running"}</strong>
-      {#if progress.total > 0}
-        <span>
-          · {progress.completed} / {progress.total} checked · {progress.passed} passed</span
-        >
-      {/if}
-    {:else}{message}{/if}
-    {#if reconnecting}<p class="muted">
-        Connection interrupted. Reconnecting to your submission…
-      </p>{/if}
-  </div>
-  {#if result}
-    {#if result.failure}
-      <p>
-        <strong
-          >{result.failure.public ? "Public" : "Private"} test {result.failure
-            .case}</strong
-        >{#if result.failure.line != null}
-          · Your code, line {result.failure
-            .line}{#if result.failure.column != null}, column {result.failure
-              .column}{/if}{/if}
-      </p>
-      {#if result.failure.error}<pre>{result.failure.error}</pre>{/if}
-      {#if result.failure.line != null && submittedCode !== null}
-        {@const errorLine =
-          submittedCode.split(/\r?\n/)[result.failure.line - 1]}
-        {#if errorLine !== undefined}<pre><Code code={errorLine} /></pre>{/if}
-      {/if}
-      {#if result.failure.input !== undefined}<div class="case-value">
-          <strong>Input</strong>
-          <pre>{result.failure.input}</pre>
-        </div>{/if}
-      {#if result.failure.expected !== undefined}<div class="case-value">
-          <strong>Expected</strong>
-          <pre>{JSON.stringify(result.failure.expected)}</pre>
-        </div>{/if}
-      {#if result.failure.actual !== undefined}<div class="case-value">
-          <strong>Actual</strong>
-          <pre>{JSON.stringify(result.failure.actual)}</pre>
-        </div>{/if}
-    {/if}
-    {#if result.output && !result.failure && !(result.total != null && result.passed != null)}<pre>{result.output}</pre>{/if}
-  {/if}
-</section>
-
-<style>
-  .feedback {
-    background: #1e293b;
-    border-radius: 8px;
-    padding: 16px;
-    overflow-wrap: anywhere;
-  }
-  .feedback p {
-    margin: 8px 0;
-  }
-  .feedback pre {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    max-height: 300px;
-    overflow: auto;
-    margin: 8px 0;
-  }
-  .case-value {
-    margin: 12px 0;
-  }
-</style>
+<SubmissionFeedback
+  {result}
+  {progress}
+  {message}
+  {reconnecting}
+  {submittedCode}
+  {publicCases}
+/>
