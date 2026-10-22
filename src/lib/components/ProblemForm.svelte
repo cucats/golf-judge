@@ -10,7 +10,12 @@
     data,
     form,
   }: {
-    data: { problem: Problem; usedIn: Contest[]; saved: boolean };
+    data: {
+      problem: Problem;
+      usedIn: Contest[];
+      saved: boolean;
+      user?: { username: string } | null;
+    };
     form?: { error: string; problem: Problem } | null;
   } = $props();
   let p = $state<Problem>(
@@ -55,16 +60,16 @@
   <div class="help-box">
     <strong>Grading protocol.</strong> The contestant's code defines a function
     <code>f</code>
-    in
-    <code>submission.py</code>. The grader (<code>main.py</code>) receives the
-    test input on stdin, must <Code code="from submission import f" />, call
+    in its submission. The grader runs separately from the submitted code. It receives
+    the test input on stdin, must <Code code="from submission import f" />, call
     <code>f</code>
     once per test case, and print one line of output per case. Stdout is compared
     line-by-line against the expected output (trailing whitespace is ignored). Before
     each case, the grader should write
     <code>TESTCASE n: &lt;input description&gt;</code>
-    to stderr so contestants can see which case failed. The time limit applies to
-    the whole run, across all test cases. Expected test count: {testCount}.
+    to stderr to describe that case. Public cases can show their inputs and expected
+    and actual outputs; private case inputs and outputs stay hidden. The time limit
+    applies to the whole run, across all test cases. Expected test count: {testCount}.
   </div>
   <form method="POST">
     <div class="field">
@@ -108,11 +113,42 @@
         spellcheck="false"></textarea>
     </div>
     <div class="field">
+      <label for="public-test-count">Public test cases</label><input
+        id="public-test-count"
+        name="public_test_count"
+        type="number"
+        min="0"
+        max={testCount}
+        bind:value={p.public_test_count}
+        required
+        aria-describedby="public-test-help"
+      />
+      <p id="public-test-help" class="muted">
+        Failure details for the first N cases are public. Use 0 to keep every
+        case private.
+      </p>
+    </div>
+    <div class="field">
       <strong>Grader</strong><Editor
         name="grader"
         label="Grader"
         bind:value={p.grader}
       />
+    </div>
+    <div class="field">
+      <label for="result-mode">Return value</label><select
+        id="result-mode"
+        name="result_mode"
+        bind:value={p.result_mode}
+        aria-describedby="result-mode-help"
+      >
+        <option value="value">Value</option>
+        <option value="truthy">Truthy or falsy</option>
+      </select>
+      <p id="result-mode-help" class="muted">
+        Truthy or falsy converts the submitted function's return value to a
+        boolean before the grader receives it.
+      </p>
     </div>
     <div class="btn-row">
       <div class="field">
@@ -142,16 +178,17 @@
       <button>Save problem</button><a href="/admin/problems">Cancel</a>
     </div>
   </form>
-  {#if p.id}<section class="card">
-      <h2>Try a solution</h2>
-      <p class="muted">
-        Runs against the saved version without recording a submission. Save your
-        edits first.
-      </p>
-      <SubmissionEditor
-        action={`/admin/problems/${p.id}/test`}
-        storageKey={`admin_test_${p.id}`}
-        button="Run"
-      />
-    </section>{/if}
+  {#if p.id}{#key p.id}<section class="card">
+        <h2>Try a solution</h2>
+        <p class="muted">
+          Runs against the saved version without recording a submission. Save
+          your edits first.
+        </p>
+        <SubmissionEditor
+          action={`/admin/problems/${p.id}/test`}
+          storageKey={`admin_test_${p.id}`}
+          pendingStorageKey={`admin_test_${p.id}_${data.user?.username ?? ""}`}
+          button="Run"
+        />
+      </section>{/key}{/if}
 </div>

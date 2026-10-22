@@ -17,29 +17,70 @@ describe("judge verdicts", () => {
       "1\n3\n",
       "TESTCASE 1: a:b\nTESTCASE 2: c\n",
       "1\n2\n",
+      2,
     );
     expect(result.verdict).toBe("WA");
     expect(result.output).toContain("Passed 1/2");
     expect(result.output).toContain("Input: c\n\nExpected: 2\nGot: 3");
-    expect(evaluate("OK", 0, "1\n", "", "1\n2").output).toContain(
+    expect(evaluate("OK", 0, "1\n", "", "1\n2", 2).output).toContain(
       "Got: (no output)",
     );
     expect(evaluate("OK", 0, "1\n2\n3", "", "1\n2").output).toContain(
-      "Failed on test case 3",
+      "Failed on private test case 3",
     );
   });
   test("distinguishes runtime failures and timeouts", () => {
     expect(
-      evaluate("RE", 3, "", "TESTCASE 1: {'k': 1}\nTraceback: boom\n", "1\n2")
-        .output,
+      evaluate(
+        "RE",
+        3,
+        "",
+        "TESTCASE 1: {'k': 1}\nTraceback: boom\n",
+        "1\n2",
+        1,
+      ).output,
     ).toContain("Input: {'k': 1}");
     const timeout = evaluate("TO", 1000, "", "TESTCASE 2: x\n", "1\n2\n3");
     expect(timeout.verdict).toBe("TLE");
-    expect(timeout.output).toContain("Passed 1/3");
+    expect(timeout.output).toContain("Passed 0/3");
+    expect(
+      evaluate("TO", 1000, "wrong\n", "TESTCASE 2: secret\n", "1\n2\n3").passed,
+    ).toBe(0);
+    expect(
+      evaluate("TO", 1000, "1\n", "TESTCASE 2: secret\n", "1\n2\n3").passed,
+    ).toBe(1);
+  });
+  test("private failures never disclose inputs, answers or exception messages", () => {
+    const wrong = evaluate(
+      "OK",
+      0,
+      "leaked input\n",
+      "TESTCASE 1: secret input\n",
+      "secret answer",
+    );
+    expect(wrong.failure).toEqual({ case: 1, public: false });
+    expect(wrong.output).not.toContain("secret");
+    expect(wrong.output).not.toContain("leaked");
+    const error = evaluate(
+      "RE",
+      0,
+      "",
+      "TESTCASE 1: secret input\n",
+      "secret answer",
+      0,
+      {
+        kind: "ValueError",
+        message: "secret input",
+        line: 2,
+      },
+    );
+    expect(error.failure?.error).toBe("ValueError");
+    expect(error.failure?.line).toBe(2);
+    expect(error.output).not.toContain("secret");
   });
   test("bounds diagnostics and rejects oversized UTF-8 submissions", () => {
     expect(
-      evaluate("WA", 0, "é".repeat(5000), "", "x").output.length,
+      evaluate("WA", 0, "é".repeat(5000), "", "x", 1).output.length,
     ).toBeLessThan(5000);
     expect(
       validateCode({ ...defaultProblem, test_output: "x" }, "é".repeat(5121)),

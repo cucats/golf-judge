@@ -49,6 +49,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json ./
 COPY migrations ./migrations
 COPY scripts/migrate.mjs ./scripts/migrate.mjs
+COPY scripts/judge ./scripts/judge
 
 EXPOSE 3000
 

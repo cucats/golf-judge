@@ -13,6 +13,8 @@ export const defaultProblem: Problem = {
   grader: `from submission import f\n\n__t = int(input())\nfor __i in range(__t):\n    __s = input()\n    __import__('sys').stderr.write(f"TESTCASE {__i + 1}: {__s!r}\\n")\n    print(f(__s))\n`,
   time_limit_ms: 1000,
   memory_limit_kb: 262144,
+  public_test_count: 0,
+  result_mode: "value",
 };
 export const usage = (pid: number) =>
   query<Contest>(
@@ -33,9 +35,21 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
     grader: text("grader"),
     time_limit_ms: Number(text("time_limit_ms")),
     memory_limit_kb: Number(text("memory_limit_mb")) * 1024,
+    public_test_count: Number(text("public_test_count")),
+    result_mode: text("result_mode") as Problem["result_mode"],
   };
   let message = "";
   if (!p.title) message = "Title is required";
+  else if (
+    !Number.isInteger(p.public_test_count) ||
+    p.public_test_count < 0 ||
+    p.public_test_count >
+      (p.test_output.trim() ? p.test_output.trim().split(/\r?\n/).length : 0)
+  )
+    message =
+      "Public test count must be between 0 and the number of expected output lines";
+  else if (p.result_mode !== "value" && p.result_mode !== "truthy")
+    message = "Choose a return value mode";
   else if ([...p.title].length > 200)
     message = "Title must be at most 200 characters";
   else if (
@@ -60,15 +74,17 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
     p.time_limit_ms,
     p.memory_limit_kb,
     now(),
+    p.public_test_count,
+    p.result_mode,
   ];
   if (pid)
     await query(
-      "UPDATE problems SET title=$1,statement=$2,test_input=$3,test_output=$4,grader=$5,time_limit_ms=$6,memory_limit_kb=$7,updated_at=$8 WHERE id=$9",
+      "UPDATE problems SET title=$1,statement=$2,test_input=$3,test_output=$4,grader=$5,time_limit_ms=$6,memory_limit_kb=$7,updated_at=$8,public_test_count=$9,result_mode=$10 WHERE id=$11",
       [...values, pid],
     );
   else
     pid = (await one<{ id: number }>(
-      "INSERT INTO problems (title,statement,test_input,test_output,grader,time_limit_ms,memory_limit_kb,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8) RETURNING id",
+      "INSERT INTO problems (title,statement,test_input,test_output,grader,time_limit_ms,memory_limit_kb,created_at,updated_at,public_test_count,result_mode) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$9,$10) RETURNING id",
       values,
     ))!.id;
   redirect(303, `/admin/problems/${pid}?saved=1`);

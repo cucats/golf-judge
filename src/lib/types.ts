@@ -19,6 +19,8 @@ export interface Problem {
   grader: string;
   time_limit_ms: number;
   memory_limit_kb: number;
+  public_test_count: number;
+  result_mode: "value" | "truthy";
 }
 export interface ProblemSummary {
   id: number;
@@ -51,6 +53,27 @@ export interface JudgeResult {
   time: number;
   output: string;
   code_length: number;
+  passed?: number;
+  completed?: number;
+  total?: number;
+  failure?: {
+    case: number;
+    public: boolean;
+    input?: string;
+    expected?: string;
+    actual?: string;
+    error?: string;
+    line?: number;
+    column?: number;
+  };
+  improvement?: number | null;
+}
+export interface JudgeProgress {
+  state: "queued" | "running" | "finished";
+  passed: number;
+  completed: number;
+  total: number;
+  result?: JudgeResult;
 }
 export interface ProblemResult {
   code_length: number;

@@ -38,12 +38,22 @@ manage the site through `/admin`.
 ## Problems
 
 Each problem has a Markdown statement, test input, expected output, a Python
-grader, and time/memory limits. The contestant's code is saved as
-`submission.py`; the grader runs as `main.py`, reads the test input on stdin,
-calls `f` for each case and prints one line per case. Output is compared line
-by line with the expected output. Before each case the grader should write
-`TESTCASE n: <description>` to stderr so contestants can see which case
-failed.
+grader, and time/memory limits. The grader runs in a separate sandbox from the
+submission. It reads test input on stdin, imports `f` from `submission`, calls
+it for each case, and prints one line per case. Arguments and results cross
+the sandbox boundary as built-in Python values; grader code and expected
+answers stay outside the contestant's sandbox. For problems accepting any
+truthy or falsy result, select that return value mode in the problem editor.
+
+Output is compared line by line with the expected output. Before each case,
+the grader should write `TESTCASE n: <description>` to stderr. The public test
+count marks the first N cases whose failure details may be shown; all other
+case inputs, outputs, and exception messages stay private. Put the public
+examples in the statement too.
+
+Submissions are queued in PostgreSQL before grading starts. Feedback updates
+live, reconnects after a page reload, and unfinished jobs resume after a server
+restart.
 
 Problems are stored in PostgreSQL and managed through the admin problem bank.
 

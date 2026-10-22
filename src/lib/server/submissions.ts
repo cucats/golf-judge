@@ -1,14 +1,14 @@
-import { randomBytes } from "node:crypto";
 import type { RequestEvent } from "@sveltejs/kit";
-import { accepting, normalize, now } from "#lib/types.js";
+import { accepting, normalize } from "#lib/types.js";
 import type { SubmissionView } from "#lib/types.js";
-import { contest, inContest, id, query, participate } from "./db.js";
-import { admit, judge, validateCode } from "./runner.js";
-export const submissionError = (output: string) =>
-  Response.json({ verdict: "ERROR", code_length: 0, time: 0, output });
+import { contest, inContest, id, query } from "./db.js";
+import { validateCode } from "./runner.js";
+import { enqueue } from "./jobs.js";
+export const submissionError = (error: string, status = 400) =>
+  Response.json({ error }, { status });
 export async function submit(event: RequestEvent) {
   const user = event.locals.user;
-  if (!user) return submissionError("Not logged in");
+  if (!user) return submissionError("Not logged in", 401);
   const c = await contest(id(event.params.id));
   if (!accepting(c))
     return submissionError(
@@ -20,30 +20,7 @@ export async function submit(event: RequestEvent) {
   );
   const invalid = validateCode(p, code);
   if (invalid) return submissionError(invalid);
-  const done = admit(user.username);
-  if (typeof done === "string") return submissionError(done);
-  try {
-    // Deliberately independent of request.signal: disconnected clients still get their submission recorded.
-    const result = await judge(p, code);
-    await participate(c.id, user.username);
-    await query(
-      "INSERT INTO submissions (id,username,contest_id,problem_id,verdict,code_length,time,code,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-      [
-        randomBytes(16).toString("base64url"),
-        user.username,
-        c.id,
-        p.id,
-        result.verdict,
-        result.code_length,
-        result.time,
-        code,
-        now(),
-      ],
-    );
-    return Response.json(result);
-  } finally {
-    done();
-  }
+  return enqueue(user.username, p, code, c.id);
 }
 export function submissions(cid: number, search: URLSearchParams) {
   const values: unknown[] = [cid];
