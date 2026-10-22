@@ -37,17 +37,6 @@
   const bytes = $derived(
     new TextEncoder().encode(code.replaceAll("\r\n", "\n")).length,
   );
-  const difference = $derived.by(() => {
-    const failure = result?.failure;
-    if (failure?.expected === undefined || failure.actual === undefined)
-      return null;
-    const expected = Array.from(failure.expected);
-    const actual = Array.from(failure.actual);
-    for (let i = 0; i < Math.max(expected.length, actual.length); i++) {
-      if (expected[i] !== actual[i]) return i + 1;
-    }
-    return null;
-  });
 
   function remember(pending: Pending | null) {
     if (!pendingKey) return;
@@ -245,15 +234,6 @@
           <strong>Actual</strong>
           <pre>{JSON.stringify(result.failure.actual)}</pre>
         </div>{/if}
-      {#if result.failure.expected !== undefined || result.failure.actual !== undefined}<p
-          class="muted"
-        >
-          Output is quoted; spaces are preserved, and tabs and line breaks
-          appear as \t and \n.
-        </p>{/if}
-      {#if difference !== null}<p>
-          First difference at character {difference}.
-        </p>{/if}
     {/if}
     {#if result.output && !result.failure && !(result.total != null && result.passed != null)}<pre>{result.output}</pre>{/if}
   {/if}
