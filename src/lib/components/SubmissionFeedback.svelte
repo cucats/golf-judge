@@ -70,7 +70,7 @@
   <div class="run-summary" role="status" aria-live="polite">
     <div class="run-status">
       {#if result}
-        <span class={`badge ${result.verdict.toLowerCase()}`}
+        <span class={`verdict-${result.verdict.toLowerCase()}`}
           >{result.verdict}</span
         >
       {:else if progress}
