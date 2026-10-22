@@ -1,6 +1,6 @@
 <script lang="ts">
   import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
-  import { untrack } from "svelte";
+  import { tick, untrack } from "svelte";
   import type { Contest, Problem } from "#lib/types.js";
   import Editor from "./Editor.svelte";
   import Markdown from "./Markdown.svelte";
@@ -27,8 +27,25 @@
   $effect(() => {
     p = copyProblem(form?.problem ?? data.problem);
   });
+  let caseList: HTMLOListElement;
+  let addCaseButton: HTMLButtonElement;
+  async function focusCase(index: number) {
+    await tick();
+    const input = caseList.children[index]?.querySelector("textarea");
+    if (input) {
+      input.focus({ preventScroll: true });
+      input.scrollIntoView({ block: "nearest" });
+    } else {
+      addCaseButton.focus();
+    }
+  }
   function addCase() {
     p.test_cases.push({ input: "", output: "", public: true });
+    void focusCase(p.test_cases.length - 1);
+  }
+  function removeCase(index: number) {
+    p.test_cases.splice(index, 1);
+    void focusCase(Math.min(index, p.test_cases.length - 1));
   }
 </script>
 
@@ -93,9 +110,11 @@
       />
       <div class="btn-row case-heading">
         <strong>Test cases · {p.test_cases.length}</strong>
-        <button type="button" onclick={addCase}>Add case</button>
+        <button bind:this={addCaseButton} type="button" onclick={addCase}
+          >Add case</button
+        >
       </div>
-      <ol class="case-list">
+      <ol bind:this={caseList} class="case-list">
         {#each p.test_cases as test, index (test)}
           <li class="test-case">
             <div class="btn-row case-controls">
@@ -126,7 +145,7 @@
                 type="button"
                 class="danger"
                 aria-label={`Remove case ${index + 1}`}
-                onclick={() => p.test_cases.splice(index, 1)}>Remove</button
+                onclick={() => removeCase(index)}>Remove</button
               >
             </div>
             <div class="case-fields">
@@ -135,6 +154,7 @@
                   id={`test-input-${index}`}
                   aria-label={`Case ${index + 1} input`}
                   bind:value={test.input}
+                  rows={Math.min(6, Math.max(2, test.input.split("\n").length))}
                   class="mono code-area"
                   spellcheck="false"></textarea>
               </div>
@@ -144,6 +164,10 @@
                   id={`test-output-${index}`}
                   aria-label={`Case ${index + 1} expected output`}
                   bind:value={test.output}
+                  rows={Math.min(
+                    6,
+                    Math.max(2, test.output.split("\n").length),
+                  )}
                   class="mono code-area"
                   spellcheck="false"></textarea>
               </div>
@@ -224,20 +248,42 @@
 
 <style>
   .test-cases {
-    margin: 20px 0;
-  }
-  .case-heading {
-    margin-bottom: 12px;
+    display: grid;
+    gap: 8px;
+    min-width: 0;
   }
   .case-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    gap: 20px;
+    max-height: 32rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid #334155;
+    border-radius: 6px;
+  }
+  .case-list:empty {
+    display: none;
+  }
+  .test-case {
+    padding: 10px 12px;
+    border-bottom: 1px solid #334155;
+  }
+  .test-case:last-child {
+    border-bottom: 0;
+  }
+  .test-cases button {
+    padding: 6px 10px;
   }
   .case-controls {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .case-controls > strong {
+    min-width: 8ch;
+  }
+  .case-controls button {
+    margin-left: auto;
   }
   .case-visibility {
     border: 0;
@@ -250,14 +296,20 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    margin: 0;
   }
   .case-fields textarea {
-    min-height: 80px;
+    min-height: 0;
+    padding: 6px 8px;
+    line-height: 1.4;
+  }
+  .case-fields label {
+    margin: 0;
   }
   .case-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 12px;
   }
   @media (max-width: 700px) {
     .case-fields {
