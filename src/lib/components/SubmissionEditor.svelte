@@ -37,10 +37,6 @@
   const bytes = $derived(
     new TextEncoder().encode(code.replaceAll("\r\n", "\n")).length,
   );
-  const submittedBytes = $derived(
-    new TextEncoder().encode((submittedCode ?? "").replaceAll("\r\n", "\n"))
-      .length,
-  );
   const difference = $derived.by(() => {
     const failure = result?.failure;
     if (failure?.expected === undefined || failure.actual === undefined)
@@ -261,15 +257,6 @@
     {/if}
     {#if result.output && !result.failure && !(result.total != null && result.passed != null)}<pre>{result.output}</pre>{/if}
   {/if}
-  {#if submittedCode !== null}
-    <details>
-      <summary
-        >Submitted code · {submittedBytes} bytes{#if submittedCode !== code}
-          · editor has changed{/if}</summary
-      >
-      <pre><Code code={submittedCode} /></pre>
-    </details>
-  {/if}
 </section>
 
 <style>
@@ -291,11 +278,5 @@
   }
   .case-value {
     margin: 12px 0;
-  }
-  details {
-    margin-top: 12px;
-  }
-  summary {
-    cursor: pointer;
   }
 </style>
