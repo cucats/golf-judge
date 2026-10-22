@@ -33,14 +33,6 @@
   const firstFailure = $derived(
     result?.cases?.find((test) => test.case === result?.failure?.case),
   );
-  const labels: Record<string, string> = {
-    AC: "Passed",
-    WA: "Wrong answer",
-    RE: "Runtime error",
-    TLE: "Time limit exceeded",
-    SE: "System error",
-    NOT_RUN: "Not run",
-  };
 </script>
 
 {#snippet values(test: TestCaseResult)}
@@ -80,11 +72,6 @@
       {#if result}
         <span class={`badge ${result.verdict.toLowerCase()}`}
           >{result.verdict}</span
-        >
-        <strong
-          >{result.verdict === "AC"
-            ? "Accepted"
-            : (labels[result.verdict] ?? result.verdict)}</strong
         >
       {:else if progress}
         <strong>{progress.state === "queued" ? "Queued" : "Running"}</strong>
@@ -156,7 +143,7 @@
             <summary>
               <span class="case-number">Case {test.case}</span>
               <span class={`case-verdict verdict-${test.verdict.toLowerCase()}`}
-                >{labels[test.verdict] ?? test.verdict}</span
+                >{test.verdict === "NOT_RUN" ? "Not run" : test.verdict}</span
               >
               {#if !test.public}<span class="case-private muted">Private</span
                 >{/if}

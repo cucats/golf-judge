@@ -166,7 +166,7 @@
   }}
 />
 <form bind:this={form} method="POST" {action} onsubmit={submit}>
-  <Editor bind:value={code} name="code" height="500px" {storageKey} />
+  <Editor bind:value={code} name="code" height="450px" {storageKey} />
   <div class="btn-row editor-controls">
     <span class="muted"
       >{bytes} bytes{#if best !== null}
