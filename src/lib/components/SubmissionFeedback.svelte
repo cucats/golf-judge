@@ -73,26 +73,20 @@
         <span class={`verdict-${result.verdict.toLowerCase()}`}
           >{result.verdict}</span
         >
+        {#if result.total != null && result.passed != null}<span class="muted"
+            >· {result.passed}/{result.total}</span
+          >{/if}
+        <span class="muted">· {result.time}ms</span>
+        <span class="muted">· {result.code_length} bytes</span>
       {:else if progress}
         <strong>{progress.state === "queued" ? "Queued" : "Running"}</strong>
+        {#if progress.total > 0}<span class="muted"
+            >· {progress.completed}/{progress.total} checked · {progress.passed} passed</span
+          >{/if}
       {:else}<strong>{message}</strong>{/if}
       {#if reconnecting}<span class="muted">Reconnecting…</span>{/if}
     </div>
     {#if result}
-      <dl class="run-metrics">
-        {#if result.total != null && result.passed != null}<div>
-            <dt>Tests passed</dt>
-            <dd>{result.passed}<span class="muted"> / {result.total}</span></dd>
-          </div>{/if}
-        <div>
-          <dt>Time</dt>
-          <dd>{result.time}<span class="muted"> ms</span></dd>
-        </div>
-        <div>
-          <dt>Size</dt>
-          <dd>{result.code_length}<span class="muted"> bytes</span></dd>
-        </div>
-      </dl>
       {#if result.verdict === "AC" && result.improvement != null && result.improvement > 0}
         <p class="improvement verdict-ac">
           {result.improvement} bytes shorter than your previous best
@@ -102,18 +96,6 @@
           {result.output}
         </p>{/if}
     {:else if progress && progress.total > 0}
-      <dl class="run-metrics">
-        <div>
-          <dt>Checked</dt>
-          <dd>
-            {progress.completed}<span class="muted"> / {progress.total}</span>
-          </dd>
-        </div>
-        <div>
-          <dt>Passed</dt>
-          <dd>{progress.passed}</dd>
-        </div>
-      </dl>
       <progress
         value={progress.completed}
         max={progress.total}
@@ -164,7 +146,7 @@
     overflow-wrap: anywhere;
   }
   .run-summary {
-    padding: 16px;
+    padding: 12px 16px;
     background: #1e293b;
   }
   .run-status {
@@ -173,30 +155,11 @@
     flex-wrap: wrap;
     gap: 10px;
   }
-  .run-status strong {
-    font-size: 1.125rem;
-  }
-  .run-metrics {
-    display: flex;
-    gap: 28px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-  }
-  dt {
+  .case-values dt {
     color: #94a3b8;
     font-size: 0.8125rem;
     font-weight: 500;
     margin-bottom: 6px;
-  }
-  .run-metrics dd {
-    font-size: 1.125rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-  .run-metrics dd span {
-    margin-left: 4px;
-    font-size: 0.875rem;
-    font-weight: 400;
   }
   progress {
     display: block;
@@ -307,9 +270,6 @@
     padding: 0 16px 16px;
   }
   @media (max-width: 480px) {
-    .run-metrics {
-      gap: 20px;
-    }
     .case-result > summary {
       gap: 8px;
     }
