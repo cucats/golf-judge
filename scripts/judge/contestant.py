@@ -27,6 +27,8 @@ try:
 except BaseException as error:
     load_error = failure(error)
 
+references = {}
+current_case = None
 while True:
     try:
         request = receive(_requests)
@@ -36,7 +38,21 @@ while True:
         if load_error is not None:
             send(_responses, load_error)
             continue
-        result = getattr(submission, request["name"])(*unpack(request["args"]), **unpack(request["kwargs"]))
-        send(_responses, {"result": pack(bool(result) if sys.argv[1:] == ["truthy"] else result)})
+        if request["case"] != current_case:
+            references.clear()
+            current_case = request["case"]
+        if request["operation"] == "bool":
+            result = bool(references[request["reference"]])
+        elif request["operation"] == "call":
+            result = getattr(submission, request["name"])(*unpack(request["args"]), **unpack(request["kwargs"]))
+        else:
+            raise ValueError("Invalid operation")
+        try:
+            packed = pack(result)
+        except TypeError:
+            reference = len(references) + 1
+            references[reference] = result
+            packed = ["reference", reference]
+        send(_responses, {"result": packed})
     except BaseException as error:
         send(_responses, failure(error))

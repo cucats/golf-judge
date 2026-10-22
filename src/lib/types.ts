@@ -24,7 +24,6 @@ export interface Problem {
   grader: string;
   time_limit_ms: number;
   memory_limit_kb: number;
-  result_mode: "value" | "truthy";
 }
 export interface ProblemSummary {
   id: number;

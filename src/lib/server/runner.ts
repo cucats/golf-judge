@@ -243,7 +243,6 @@ async function run(
           "-S",
           "-u",
           "runner.py",
-          ...(index === 0 ? [problem.result_mode ?? "value"] : []),
         ],
         { stdio: ["pipe", "pipe", "pipe", "pipe", "pipe"] },
       );

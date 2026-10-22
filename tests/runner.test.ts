@@ -8,7 +8,6 @@ const problem: Problem = {
   id: 1,
   title: "Sandbox check",
   statement: "",
-  result_mode: "value",
   grader: `from submission import f\nprint(f(int(input())))\n`,
   test_cases: [
     { input: "1", output: "2", public: true },
@@ -96,11 +95,11 @@ describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
     expect(result.failure?.public).toBe(true);
     expect(result.failure?.input).toBe("948723");
   });
-  test("normalizes arbitrary truthy results before crossing the boundary", async () => {
+  test("the grader checks truthiness of arbitrary return values", async () => {
     const result = await judge(
       {
         ...problem,
-        result_mode: "truthy",
+        grader: "from submission import f\nprint(bool(f(int(input()))))",
         test_cases: problem.test_cases.map((test) => ({
           ...test,
           output: "True",
@@ -109,6 +108,23 @@ describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
       "import re\nf=lambda x:re.match('.',str(x))",
     );
     expect(result.verdict).toBe("AC");
+  });
+  test("only the grader triggers an object's truthiness check", async () => {
+    const code =
+      "class Value:\n def __bool__(self):raise ValueError('bool called')\nf=lambda x:Value()";
+    const raw = await judge(problem, code);
+    expect(raw.verdict).toBe("RE");
+    expect(raw.failure?.error).not.toContain("bool called");
+    const checked = await judge(
+      {
+        ...problem,
+        grader: "from submission import f\nprint(bool(f(int(input()))))",
+      },
+      code,
+    );
+    expect(checked.verdict).toBe("RE");
+    expect(checked.failure?.error).toBe("ValueError: bool called");
+    expect(checked.completed).toBe(3);
   });
   test("does not expose private inputs in failures or forged stderr markers", async () => {
     const result = await judge(

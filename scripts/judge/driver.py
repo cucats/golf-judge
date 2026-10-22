@@ -2,7 +2,7 @@
 import io
 import json
 import sys
-from submission import SubmissionFailure
+from submission import SubmissionFailure, _begin_case, _validate_results
 
 with open("main.py") as source:
     code = compile(source.read(), "/box/main.py", "exec")
@@ -10,12 +10,18 @@ with open("main.py") as source:
 requests, responses = sys.stdin, sys.stdout
 try:
     for message in requests:
+        _begin_case()
         output = io.StringIO()
         sys.stdin = io.StringIO(json.loads(message))
         sys.stdout = output
         failed = False
         try:
-            exec(code, {"__name__": "__main__", "__file__": "/box/main.py"})
+            try:
+                exec(code, {"__name__": "__main__", "__file__": "/box/main.py"})
+            except Exception:
+                _validate_results()
+                raise
+            _validate_results()
         except SubmissionFailure as error:
             if not error.recoverable:
                 raise

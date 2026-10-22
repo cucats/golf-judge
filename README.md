@@ -46,8 +46,8 @@ that case's input on stdin, imports `f` from `submission`, calls it, and prints
 the output for that case. Outputs may contain multiple lines or be empty.
 Arguments and results cross
 the sandbox boundary as built-in Python values; grader code and expected
-answers stay outside the contestant's sandbox. For problems accepting any
-truthy or falsy result, select that return value mode in the problem editor.
+answers stay outside the contestant's sandbox. The grader defines how to
+interpret the return value, including ordinary Python truthiness checks.
 
 Each pair explicitly specifies whether it is public. Public failures show
 input, expected output, and actual output; private failures hide those values

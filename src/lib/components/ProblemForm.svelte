@@ -183,21 +183,6 @@
         bind:value={p.grader}
       />
     </div>
-    <div class="field">
-      <label for="result-mode">Return value</label><select
-        id="result-mode"
-        name="result_mode"
-        bind:value={p.result_mode}
-        aria-describedby="result-mode-help"
-      >
-        <option value="value">Value</option>
-        <option value="truthy">Truthy or falsy</option>
-      </select>
-      <p id="result-mode-help" class="muted">
-        Truthy or falsy converts the submitted function's return value to a
-        boolean before the grader receives it.
-      </p>
-    </div>
     <div class="btn-row">
       <div class="field">
         <label for="time">Time limit (ms, whole suite)</label><input
