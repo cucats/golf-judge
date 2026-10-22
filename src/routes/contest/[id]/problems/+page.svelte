@@ -18,13 +18,13 @@
 		</p>{:else if !accepting(data.contest)}<p class="notice">
 			This contest has ended — problems are read-only.
 		</p>{/if}
-	<div class="table-scroll">
+	<div class="card table-scroll">
 		<table class="table">
 			<thead><tr><th>#</th><th>Title</th><th>Status</th></tr></thead><tbody
 				>{#each data.problems as p}<tr
 						><td>{label(p.problem_order)}</td><td
 							><a href={`/contest/${data.contest.id}/problems/${p.id}`}>{p.title}</a></td
-						><td
+						><td class="muted"
 							>{#if p.best_bytes !== null}<strong class="verdict-ac">✓ {p.best_bytes} bytes</strong
 								>{:else if p.attempts}{p.attempts} attempt{p.attempts === 1
 									? ''

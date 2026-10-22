@@ -98,7 +98,8 @@ textarea {
 	min-height: 200px;
 }
 
-button {
+button,
+a.button {
 	background-color: #60a5fa;
 	color: #0f172a;
 	border: none;
@@ -111,16 +112,19 @@ button {
 	font-family: 'Ubuntu Mono', monospace;
 }
 
-button:hover {
+button:hover,
+a.button:hover {
 	background-color: #93c5fd;
 }
 
-button.secondary {
+button.secondary,
+a.button.secondary {
 	background-color: #334155;
 	color: #e2e8f0;
 }
 
-button.secondary:hover {
+button.secondary:hover,
+a.button.secondary:hover {
 	background-color: #475569;
 }
 
@@ -799,10 +803,6 @@ button.copy-btn {
 /* Shared Svelte components */
 a.button {
 	display: inline-block;
-	padding: 10px 20px;
-	background: #2563eb;
-	color: white;
-	border-radius: 6px;
 	text-decoration: none;
 }
 .section-actions {
@@ -840,9 +840,6 @@ a.button {
 .verdict-se {
 	color: #a855f7;
 }
-.own-row {
-	background: #1e293b;
-}
 .problem-statement img {
 	max-width: 100%;
 }
@@ -859,4 +856,47 @@ a.button {
 }
 .ace_editor textarea {
 	min-height: 0;
+}
+
+.leaderboard-total {
+	color: #fbbf24;
+	font-weight: 600;
+}
+.score-gold {
+	color: #fbbf24;
+	font-weight: 700;
+}
+.score-diamond {
+	color: #60a5fa;
+	font-weight: 700;
+}
+.score-none {
+	color: #94a3b8;
+}
+.score-missing {
+	color: #374151;
+}
+.leaderboard th a,
+.score-link {
+	color: inherit;
+}
+button.code-toggle {
+	background: none;
+	color: #60a5fa;
+	padding: 0;
+	font-size: inherit;
+	font-weight: 400;
+	white-space: nowrap;
+}
+button.code-toggle:hover {
+	text-decoration: underline;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
 }

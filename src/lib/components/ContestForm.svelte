@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Timestamp from './Timestamp.svelte';
 	import { durationLabel } from '#lib/types.js';
 	import type { Contest, ContestProblem, ProblemSummary } from '#lib/types.js';
 	let {
@@ -31,7 +32,7 @@
 			<p><strong>Duration:</strong> {durationLabel(c)}</p>
 			{#if c.start_time}<p>
 					<strong>Started:</strong>
-					{new Date(c.start_time * 1000).toISOString()}
+					<Timestamp timestamp={c.start_time} />
 				</p>{/if}
 			<p>
 				<strong>Participants:</strong>

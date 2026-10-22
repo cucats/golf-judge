@@ -12,7 +12,7 @@
 			>Problem bank ({data.bankSize})</a
 		>
 	</div>
-	<div class="table-scroll">
+	<div class="card table-scroll">
 		<table class="table">
 			<thead
 				><tr

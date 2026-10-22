@@ -10,9 +10,9 @@ services:
     security_opt: [seccomp=unconfined, apparmor=unconfined]
     environment:
       DATABASE_URL: postgres://user:password@db:5432/codegolf
-      INSECURE_COOKIES: "1" # session cookie over plain http
+      INSECURE_COOKIES: '1' # session cookie over plain http
     ports:
-      - "3000:3000"
+      - '3000:3000'
     depends_on:
       db:
         condition: service_healthy
@@ -24,6 +24,6 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: codegolf
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d codegolf"]
+      test: ['CMD-SHELL', 'pg_isready -U user -d codegolf']
       interval: 2s
       retries: 30

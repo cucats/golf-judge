@@ -9,7 +9,7 @@
 	<h1>Problem bank</h1>
 	<p><a class="button" href="/admin/problems/new">New problem</a></p>
 	{#if data.error}<p class="error">{data.error}</p>{/if}
-	<div class="table-scroll">
+	<div class="card table-scroll">
 		<table class="table">
 			<thead><tr><th>Title</th><th>Contests</th><th>Submissions</th><th>Actions</th></tr></thead
 			><tbody

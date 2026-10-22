@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import Code from '#lib/components/Code.svelte';
+	import Timestamp from '#lib/components/Timestamp.svelte';
 	import Poll from '#lib/components/Poll.svelte';
 	import { accepting, label } from '#lib/types.js';
 	let { data }: PageProps = $props();
@@ -43,31 +44,38 @@
 		</div>
 		<button>Filter</button><a href={`/admin/contests/${data.contest.id}/submissions`}>Clear</a>
 	</form>
-	<div class="table-scroll">
+	<div class="card table-scroll">
 		<table class="table">
 			<thead
 				><tr
 					><th>Time</th><th>Username</th><th>Problem</th><th>Verdict</th><th>Bytes</th><th
 						>Time (ms)</th
-					></tr
+					><th><span class="sr-only">Code</span></th></tr
 				></thead
 			><tbody
-				>{#each data.submissions as s}<tr
-						><td
-							><button
-								class="link-btn"
-								aria-expanded={!!expanded[s.id]}
-								onclick={() => (expanded[s.id] = !expanded[s.id])}
-								>{new Date(s.created_at * 1000).toISOString()}</button
-							></td
-						><td>{s.username}</td><td
+				>{#each data.submissions as s}
+					<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions (The Show code button provides keyboard access.) -->
+					<tr class="click-row" onclick={() => (expanded[s.id] = !expanded[s.id])}
+						><td class="muted"><Timestamp timestamp={s.created_at} /></td><td>{s.username}</td><td
+							class="muted"
 							>{s.problem_order === null ? '?' : label(s.problem_order)}. {s.problem_title}</td
 						><td><span class={`badge ${s.verdict.toLowerCase()}`}>{s.verdict}</span></td><td
 							>{s.code_length}</td
-						><td>{s.time}</td></tr
-					>{#if expanded[s.id]}<tr class="code-row"
-							><td colspan="6"><pre><Code code={s.code} /></pre></td></tr
-						>{/if}{/each}</tbody
+						><td>{s.time}</td><td
+							><button
+								type="button"
+								class="code-toggle"
+								aria-expanded={!!expanded[s.id]}
+								aria-controls={`code-${s.id}`}
+								onclick={(event) => {
+									event.stopPropagation();
+									expanded[s.id] = !expanded[s.id];
+								}}>{expanded[s.id] ? 'Hide code' : 'Show code'}</button
+							></td
+						></tr
+					><tr class="code-row" id={`code-${s.id}`} hidden={!expanded[s.id]}
+						><td colspan="7"><pre><Code code={s.code} /></pre></td></tr
+					>{/each}</tbody
 			>
 		</table>
 	</div>

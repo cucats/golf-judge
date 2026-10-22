@@ -30,7 +30,11 @@
 			{#each group.contests as c}<div class="card">
 					<h3>{c.name}</h3>
 					<p>{durationLabel(c)} <span class={`badge ${c.status}`}>{c.status}</span></p>
-					<a class="button" href={`/contest/${c.id}/${group.path}`}>{group.button}</a>
+					<a
+						class="button"
+						class:secondary={group.path === 'leaderboard'}
+						href={`/contest/${c.id}/${group.path}`}>{group.button}</a
+					>
 				</div>{/each}{/if}{/each}
 	{#if !data.contests.length}<div class="card">No contests yet.</div>{/if}
 </div>
