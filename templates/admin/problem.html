@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
 <div class="container">
     <h1>{% if self.is_new() %}New Problem{% else %}{{ problem.title }}{% endif %}</h1>
 
@@ -56,9 +57,19 @@
             <input type="text" id="title" name="title" value="{{ problem.title }}" required maxlength="200">
         </div>
 
-        <div class="field">
-            <label for="statement">Statement (Markdown)</label>
-            <textarea id="statement" name="statement" class="mono code-area tall" spellcheck="false">{{ problem.statement }}</textarea>
+        <div class="statement-edit-layout">
+            <div class="field">
+                <label id="statement-label" for="statement">Statement (Markdown)</label>
+                <textarea id="statement" name="statement" class="mono code-area tall" spellcheck="false">{{ problem.statement }}</textarea>
+                <div id="statement-editor" class="code-editor problem-editor" hidden></div>
+            </div>
+            <div class="field">
+                <strong id="preview-label">Statement preview</strong>
+                <div id="statement-preview" class="card problem-statement statement-preview" aria-labelledby="preview-label">
+                    {{ statement_html|safe }}
+                </div>
+                <p id="preview-error" class="error" role="status" hidden></p>
+            </div>
         </div>
 
         <div class="field">
@@ -72,8 +83,9 @@
         </div>
 
         <div class="field">
-            <label for="grader">Grader (Python, main.py)</label>
+            <label id="grader-label" for="grader">Grader (Python, main.py)</label>
             <textarea id="grader" name="grader" class="mono code-area tall" spellcheck="false">{{ problem.grader }}</textarea>
+            <div id="grader-editor" class="code-editor problem-editor" hidden></div>
         </div>
 
         <div class="btn-row">
@@ -103,14 +115,8 @@
             </form>
         </div>
 
-        <h2 style="margin-top: 32px;">Statement preview</h2>
-        <div class="card problem-statement">
-            {{ statement_html|safe }}
-        </div>
-
         <h2 style="margin-top: 32px;">Test a solution</h2>
         <p class="muted">Runs against the saved version of this problem (save first to test your latest edits).</p>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
         <div style="background-color: #1e293b; border-radius: 8px; overflow: hidden; height: 400px; margin-top: 12px;">
             <div id="editor" class="code-editor" style="height: 100%; width: 100%;"></div>
         </div>
@@ -178,4 +184,5 @@
         </script>
     {% endif %}
 </div>
+<script src="/static/js/problem-editor.js"></script>
 {% endblock %}

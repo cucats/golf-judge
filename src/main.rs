@@ -88,6 +88,7 @@ async fn main() {
             get(admin::problems_page).post(admin::create_problem),
         )
         .route("/admin/problems/new", get(admin::new_problem_page))
+        .route("/admin/problems/preview", post(admin::preview_statement))
         .route(
             "/admin/problems/{id}",
             get(admin::edit_problem_page).post(admin::update_problem),

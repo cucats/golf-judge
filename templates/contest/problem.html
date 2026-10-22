@@ -52,45 +52,11 @@
             Time limit {{ time_limit_ms }} ms (whole run) &middot; Memory {{ memory_limit_mb }} MB
             <span id="best-wrap"{% if best_bytes.is_none() %} hidden{% endif %}>&middot; Your best: <span id="best-bytes">{% if let Some(best) = best_bytes %}{{ best }}{% endif %}</span> bytes</span>
         </p>
-        <div class="problem-statement" style="line-height: 1.75;">
+        <div class="problem-statement">
             {{ statement_html|safe }}
         </div>
     </div>
 
-    <style>
-        .problem-statement ul, .problem-statement ol {
-            margin: 16px 0;
-            padding-left: 24px;
-        }
-        .problem-statement li {
-            margin: 8px 0;
-        }
-        .problem-statement p {
-            margin: 12px 0;
-        }
-        .problem-statement code {
-            background-color: #0f172a;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Ubuntu Mono', monospace;
-            font-size: 0.9em;
-        }
-        .problem-statement pre {
-            background-color: #0f172a;
-            padding: 12px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 16px 0;
-        }
-        .problem-statement pre code {
-            background-color: transparent;
-            padding: 0;
-        }
-        .problem-statement h2, .problem-statement h3 {
-            margin-top: 20px;
-            margin-bottom: 12px;
-        }
-    </style>
 
     <!-- Editor and Output -->
     <div style="display: flex; flex-direction: column; gap: 16px;">

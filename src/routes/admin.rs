@@ -3,7 +3,7 @@ use axum::{
     Form, Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect},
 };
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
@@ -593,6 +593,19 @@ pub async fn new_problem_page(session: Session) -> AppResult {
         error: None,
         saved: false,
     })
+}
+
+#[derive(Deserialize)]
+pub struct StatementPreviewForm {
+    statement: String,
+}
+
+pub async fn preview_statement(
+    session: Session,
+    Form(form): Form<StatementPreviewForm>,
+) -> AppResult {
+    admin_or_return!(session);
+    Ok(Html(markdown::render_markdown(&form.statement)).into_response())
 }
 
 #[derive(Deserialize)]
