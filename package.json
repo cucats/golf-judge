@@ -1,0 +1,43 @@
+{
+  "name": "cucats-golf",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --bun vite dev",
+    "build": "bun --bun vite build",
+    "start": "bun scripts/migrate.mjs && bun build/index.js",
+    "migrate": "bun scripts/migrate.mjs",
+    "prepare": "bun --bun svelte-kit sync",
+    "check": "bun --bun svelte-kit sync && bun --bun svelte-check --tsconfig ./tsconfig.json",
+    "test": "bun test",
+    "format": "prettier --write src tests scripts/migrate.mjs vite.config.ts",
+    "format:check": "prettier --check src tests scripts/migrate.mjs vite.config.ts"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-bun": "^1.0.0",
+    "@sveltejs/kit": "^3.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^24",
+    "@types/pg": "^8",
+    "@types/sanitize-html": "^2",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^4.1.1",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.6.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0"
+  },
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
+  "dependencies": {
+    "ace-builds": "^1.43.3",
+    "highlight.js": "^11.11.1",
+    "marked": "^17",
+    "pg": "^8",
+    "sanitize-html": "^2"
+  },
+  "packageManager": "bun@1.4.2"
+}

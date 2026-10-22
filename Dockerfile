@@ -1,15 +1,15 @@
-FROM rust:1.90-trixie AS builder
-
+FROM oven/bun:1.4.2-debian AS builder
 WORKDIR /app
-# Build dependencies against a stub main so this layer stays cached until
-# Cargo.toml or Cargo.lock change; a redeploy then only recompiles this crate
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && \
-    cargo build --release && \
-    rm -rf src target/release/golf target/release/deps/golf-*
-
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN cargo build --release && cp target/release/golf /golf
+ARG BUILD_ORIGIN
+RUN bun run build
+
+FROM oven/bun:1.4.2-debian AS dependencies
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile --ignore-scripts
 
 FROM debian:trixie-slim AS isolate
 
@@ -43,11 +43,15 @@ RUN mkdir -p /var/local/lib/isolate && \
 
 WORKDIR /app
 
-COPY --from=builder /golf .
+COPY --from=builder /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=builder /app/build ./build
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY package.json ./
 COPY migrations ./migrations
-COPY templates ./templates
-COPY static ./static
+COPY scripts/migrate.mjs ./scripts/migrate.mjs
 
 EXPOSE 3000
 
-CMD ["./golf"]
+ENV HOST=0.0.0.0 PORT=3000
+
+CMD ["sh", "-c", "bun scripts/migrate.mjs && exec bun build/index.js"]

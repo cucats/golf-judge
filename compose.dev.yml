@@ -2,7 +2,10 @@
 # Then open http://localhost:3000 and log in with your account.
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        BUILD_ORIGIN: http://localhost:3000
     cap_add: [SYS_ADMIN, NET_ADMIN] # isolate sandboxing; matches prod
     security_opt: [seccomp=unconfined, apparmor=unconfined]
     environment:

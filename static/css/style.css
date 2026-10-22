@@ -753,3 +753,21 @@ button.copy-btn {
         margin-bottom: 24px;
     }
 }
+
+/* Shared Svelte components */
+a.button { display: inline-block; padding: 10px 20px; background: #2563eb; color: white; border-radius: 6px; text-decoration: none; }
+.section-actions { margin: 20px 0; }
+.editor-controls { justify-content: space-between; margin: 12px 0; }
+.judge-output { background: #1e293b; border-radius: 8px; padding: 16px; max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.countdown { color: #fbbf24; font-weight: bold; }
+.verdict-ac { color: #10b981; }
+.verdict-wa { color: #ef4444; }
+.verdict-tle { color: #eab308; }
+.verdict-re { color: #f97316; }
+.verdict-se { color: #a855f7; }
+.own-row { background: #1e293b; }
+.problem-statement img { max-width: 100%; }
+
+.login-container { max-width: 28rem; margin: 10vh auto; padding: 20px; }
+.login-container form { display: grid; gap: 12px; margin-top: 20px; }
+.ace_editor textarea { min-height: 0; }

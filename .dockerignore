@@ -1,3 +1,9 @@
+node_modules
+.svelte-kit
+build
 target
 .git
 .github
+.env
+.env.*
+problems.md

@@ -1,9 +1,8 @@
 # CUCaTS Code Golf
 
 [![CI](https://github.com/intgrah/golf-judge/actions/workflows/ci.yml/badge.svg)](https://github.com/intgrah/golf-judge/actions/workflows/ci.yml)
-![Rust](https://img.shields.io/badge/rust-1.90-orange.svg)
 
-A code golf judge built with Rust. Admins build a bank of problems in the
+A code golf judge built with SvelteKit 3, TypeScript, and Bun. Admins build a bank of problems in the
 browser and assemble any number of contests from it; contestants log in with a
 username and password (the first login claims the username) and submit Python
 3.15 solutions that are judged in an [isolate](https://github.com/ioi/isolate)
@@ -16,6 +15,14 @@ docker compose -f compose.dev.yml up --build
 ```
 
 Open <http://localhost:3000> and log in at `/login`.
+
+For frontend development, install Bun 1.4.2 or newer, then run `bun install`,
+`bun run migrate`, and `bun run dev` with `DATABASE_URL` set. Grading needs
+Linux and the isolate/Python setup provided by the Docker image.
+
+`bun run check` checks TypeScript and Svelte; `bun run build` builds the
+production server. The Docker entrypoint applies pending SQL migrations
+before starting the server. Existing databases keep their migration history.
 
 Admins use the same account and password to participate in contests and
 manage the site through `/admin`.
@@ -43,5 +50,5 @@ Problems are stored in PostgreSQL and managed through the admin problem bank.
 ## Tests
 
 ```sh
-cargo test
+bun test
 ```
