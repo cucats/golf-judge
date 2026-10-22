@@ -50,3 +50,30 @@
     </table>
   </div>
 </div>
+
+<style>
+  .table-scroll {
+    padding: 0;
+  }
+
+  .table th,
+  .table td {
+    padding: 6px 12px;
+  }
+
+  .table th:last-child,
+  .table td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  .table button {
+    padding: 4px 8px;
+    font-size: 0.875rem;
+  }
+
+  .table .btn-row {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+</style>
