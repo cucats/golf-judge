@@ -53,9 +53,9 @@
     <code>submission.py</code>. The grader (<code>main.py</code>) receives the
     test input on stdin, must <Code code="from submission import f" />, call
     <code>f</code>
-    once per test case, and print one line of output per case. Stdout is
-    compared line-by-line against the expected output (trailing whitespace is
-    ignored). Before each case, the grader should write
+    once per test case, and print one line of output per case. Stdout is compared
+    line-by-line against the expected output (trailing whitespace is ignored). Before
+    each case, the grader should write
     <code>TESTCASE n: &lt;input description&gt;</code>
     to stderr so contestants can see which case failed. The time limit applies to
     the whole run, across all test cases. Expected test count: {testCount}.
