@@ -36,7 +36,8 @@ impl AppState {
     pub async fn auto_end_expired_contests(&self) -> Result<(), sqlx::Error> {
         sqlx::query(
             "UPDATE contests SET status = 'ended'
-             WHERE status = 'active' AND start_time IS NOT NULL AND $1 >= start_time + duration",
+             WHERE status = 'active' AND duration > 0 AND start_time IS NOT NULL
+               AND $1 >= start_time + duration",
         )
         .bind(chrono::Utc::now().timestamp())
         .execute(&self.db)

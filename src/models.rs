@@ -24,6 +24,9 @@ impl Contest {
     }
 
     pub fn time_remaining(&self) -> Option<i64> {
+        if self.duration == 0 {
+            return None;
+        }
         let start_time = self.start_time?;
         let now = chrono::Utc::now().timestamp();
         Some((start_time + self.duration as i64 - now).max(0))
@@ -31,6 +34,14 @@ impl Contest {
 
     pub fn duration_minutes(&self) -> i32 {
         self.duration / 60
+    }
+
+    pub fn duration_label(&self) -> String {
+        if self.duration == 0 {
+            "No time limit".into()
+        } else {
+            format!("{} minutes", self.duration_minutes())
+        }
     }
 }
 
@@ -93,6 +104,40 @@ pub fn order_label(order: i32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unlimited_contest_accepts_submissions_until_manually_ended() {
+        let mut contest = Contest {
+            id: 1,
+            name: "Unlimited".into(),
+            duration: 0,
+            start_time: Some(chrono::Utc::now().timestamp() - 365 * 24 * 60 * 60),
+            status: "active".into(),
+            created_at: 0,
+        };
+        assert_eq!(contest.time_remaining(), None);
+        assert!(!contest.is_ended());
+        assert!(contest.is_accepting_submissions());
+
+        contest.status = "ended".into();
+        assert!(contest.is_ended());
+        assert!(!contest.is_accepting_submissions());
+    }
+
+    #[test]
+    fn timed_contest_still_expires() {
+        let contest = Contest {
+            id: 1,
+            name: "Timed".into(),
+            duration: 60,
+            start_time: Some(chrono::Utc::now().timestamp() - 120),
+            status: "active".into(),
+            created_at: 0,
+        };
+        assert_eq!(contest.time_remaining(), Some(0));
+        assert!(contest.is_ended());
+        assert!(!contest.is_accepting_submissions());
+    }
 
     #[test]
     fn order_labels() {

@@ -14,7 +14,7 @@
         <h1>{{ c.name }}</h1>
         <div class="card">
             <p><strong>Status:</strong> <span class="badge {{ c.status }}">{{ c.status }}</span></p>
-            <p><strong>Duration:</strong> {{ c.duration_minutes() }} minutes</p>
+            <p><strong>Duration:</strong> {{ c.duration_label() }}</p>
             {% if let Some(start) = c.start_time %}
                 <p><strong>Started:</strong> <span id="start-time" data-timestamp="{{ start }}"></span></p>
             {% endif %}
@@ -70,7 +70,8 @@
 
         <div class="field">
             <label for="duration">Duration (minutes)</label>
-            <input type="number" id="duration" name="duration" required value="{{ duration_minutes }}" min="1">
+            <input type="number" id="duration" name="duration" required value="{{ duration_minutes }}" min="0" aria-describedby="duration-help">
+            <p id="duration-help" class="muted">Use 0 for no time limit.</p>
         </div>
 
         <div class="field">

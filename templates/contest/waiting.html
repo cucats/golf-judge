@@ -10,7 +10,7 @@
         <h2>{{ contest.name }}</h2>
         <p>The contest has not started yet. This page will refresh automatically.</p>
         <p style="margin-top: 20px;">
-            <strong>Duration:</strong> {{ contest.duration_minutes() }} minutes<br>
+            <strong>Duration:</strong> {{ contest.duration_label() }}<br>
             <strong>Problems:</strong> {{ problem_count }}
         </p>
     </div>

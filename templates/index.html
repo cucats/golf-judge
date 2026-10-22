@@ -19,7 +19,7 @@
                 <div class="card">
                     <h3>{{ contest.name }}</h3>
                     <p>
-                        {{ contest.duration_minutes() }} minutes
+                        {{ contest.duration_label() }}
                         <span class="badge {{ contest.status }}">{{ contest.status }}</span>
                     </p>
                     <a href="/contest/{{ contest.id }}/join"><button>Enter</button></a>
@@ -33,7 +33,7 @@
                 <div class="card">
                     <h3>{{ contest.name }}</h3>
                     <p>
-                        {{ contest.duration_minutes() }} minutes
+                        {{ contest.duration_label() }}
                         <span class="badge {{ contest.status }}">{{ contest.status }}</span>
                     </p>
                     <a href="/contest/{{ contest.id }}/join"><button>Join waiting room</button></a>
@@ -47,7 +47,7 @@
                 <div class="card">
                     <h3>{{ contest.name }}</h3>
                     <p>
-                        {{ contest.duration_minutes() }} minutes
+                        {{ contest.duration_label() }}
                         <span class="badge {{ contest.status }}">{{ contest.status }}</span>
                     </p>
                     <a href="/contest/{{ contest.id }}/leaderboard"><button class="secondary">Results</button></a>

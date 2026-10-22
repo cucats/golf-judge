@@ -34,7 +34,7 @@
                     <tr>
                         <td><a href="/admin/contests/{{ row.contest.id }}">{{ row.contest.name }}</a></td>
                         <td><span class="badge {{ row.contest.status }}">{{ row.contest.status }}</span></td>
-                        <td>{{ row.contest.duration_minutes() }} min</td>
+                        <td>{{ row.contest.duration_label() }}</td>
                         <td>{{ row.problem_count }}</td>
                         <td>{{ row.participant_count }}</td>
                         <td>{{ row.submission_count }}</td>

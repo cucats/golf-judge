@@ -17,8 +17,6 @@ use crate::{
     state::AppState,
 };
 
-const MAX_DURATION_MINUTES: i32 = 7 * 24 * 60;
-
 macro_rules! admin_or_return {
     ($session:expr) => {
         match require_admin(&$session).await {
@@ -109,14 +107,18 @@ impl ContestForm {
             selected: Vec::new(),
         };
         let mut error = None;
+        let mut duration_present = false;
         for (key, value) in fields {
             let value = value.trim();
             match key.as_str() {
                 "name" => form.name = value.to_string(),
-                "duration" => match value.parse() {
-                    Ok(minutes) => form.duration_minutes = minutes,
-                    Err(_) => error = Some("Duration must be a whole number of minutes".into()),
-                },
+                "duration" => {
+                    duration_present = true;
+                    match value.parse() {
+                        Ok(minutes) => form.duration_minutes = minutes,
+                        Err(_) => error = Some("Duration must be a whole number of minutes".into()),
+                    }
+                }
                 _ => {
                     if let Some(pid) = key.strip_prefix("pos_").and_then(|p| p.parse().ok())
                         && !value.is_empty()
@@ -135,10 +137,12 @@ impl ContestForm {
             error = Some("Contest name is required".into());
         } else if form.name.chars().count() > 100 {
             error = Some("Contest name must be at most 100 characters".into());
-        } else if !(1..=MAX_DURATION_MINUTES).contains(&form.duration_minutes) {
-            error = Some(format!(
-                "Duration must be between 1 and {MAX_DURATION_MINUTES} minutes"
-            ));
+        } else if !duration_present {
+            error = Some("Duration is required".into());
+        } else if form.duration_minutes < 0 {
+            error = Some("Duration must be 0 or more minutes".into());
+        } else if form.duration_minutes.checked_mul(60).is_none() {
+            error = Some("Duration is too large".into());
         }
         match error {
             Some(e) => Err((form, e)),
@@ -861,9 +865,18 @@ mod tests {
 
     #[test]
     fn contest_form_rejects_bad_duration() {
-        for duration in ["0", "-5", "abc", "999999"] {
+        for duration in ["-5", "abc", "", "1.5", "35791395", "2147483648"] {
             let result = ContestForm::parse(&fields(&[("name", "x"), ("duration", duration)]));
             assert!(result.is_err(), "duration {duration} accepted");
+        }
+        assert!(ContestForm::parse(&fields(&[("name", "x")])).is_err());
+    }
+
+    #[test]
+    fn contest_form_accepts_unlimited_and_long_durations() {
+        for duration in ["0", "10081", "999999", "35791394"] {
+            let result = ContestForm::parse(&fields(&[("name", "x"), ("duration", duration)]));
+            assert!(result.is_ok(), "duration {duration} rejected");
         }
     }
 
