@@ -130,16 +130,18 @@ async fn check_problem_access(
     contest: &Contest,
     session: &Session,
     path: &str,
-) -> Result<Option<SessionUser>, Response> {
+) -> Result<Option<SessionUser>, Box<Response>> {
     let user = session::get_user(session).await;
     if contest.is_ended() {
         return Ok(user);
     }
     let Some(user) = user else {
-        return Err(login_redirect(path));
+        return Err(Box::new(login_redirect(path)));
     };
     if contest.is_pending() && !user.is_admin {
-        return Err(Redirect::to(&format!("/contest/{}/waiting", contest.id)).into_response());
+        return Err(Box::new(
+            Redirect::to(&format!("/contest/{}/waiting", contest.id)).into_response(),
+        ));
     }
     Ok(Some(user))
 }
@@ -180,7 +182,7 @@ pub async fn contest_problems(
     .await
     {
         Ok(user) => user,
-        Err(response) => return Ok(response),
+        Err(response) => return Ok(*response),
     };
 
     let mut progress: HashMap<i32, (bool, Option<i32>, i64)> = HashMap::new();
@@ -253,7 +255,7 @@ pub async fn contest_problem(
     let path = format!("/contest/{contest_id}/problems/{problem_id}");
     let user = match check_problem_access(&contest, &session, &path).await {
         Ok(user) => user,
-        Err(response) => return Ok(response),
+        Err(response) => return Ok(*response),
     };
     let Some((problem, order)) =
         problems::get_in_contest(&state.db, contest_id, problem_id).await?

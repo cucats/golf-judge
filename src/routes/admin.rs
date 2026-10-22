@@ -21,7 +21,7 @@ macro_rules! admin_or_return {
     ($session:expr) => {
         match require_admin(&$session).await {
             Ok(user) => user,
-            Err(response) => return Ok(response),
+            Err(response) => return Ok(*response),
         }
     };
 }

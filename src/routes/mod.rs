@@ -85,11 +85,11 @@ pub fn login_redirect(next: &str) -> Response {
     Redirect::to(&format!("/login?next={}", urlencoding::encode(next))).into_response()
 }
 
-pub async fn require_admin(session: &Session) -> Result<SessionUser, Response> {
+pub async fn require_admin(session: &Session) -> Result<SessionUser, Box<Response>> {
     match session::get_user(session).await {
         Some(user) if user.is_admin => Ok(user),
-        Some(_) => Err(Redirect::to("/").into_response()),
-        None => Err(login_redirect("/admin")),
+        Some(_) => Err(Box::new(Redirect::to("/").into_response())),
+        None => Err(Box::new(login_redirect("/admin"))),
     }
 }
 
