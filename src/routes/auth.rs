@@ -74,34 +74,37 @@ pub async fn login_post(
         Ok(()) => authenticate(&state, username, &form.password).await?,
         Err(error) => Err(error),
     };
-    if let Err(error) = outcome {
-        return render(LoginTemplate {
-            viewer: Viewer::from(None),
-            error: Some(error),
-            next,
-            username: username.to_string(),
-        });
-    }
+    let is_admin = match outcome {
+        Ok(is_admin) => is_admin,
+        Err(error) => {
+            return render(LoginTemplate {
+                viewer: Viewer::from(None),
+                error: Some(error),
+                next,
+                username: username.to_string(),
+            });
+        }
+    };
 
-    session::set_user(&session, username.to_string(), false)
+    session::set_user(&session, username.to_string(), is_admin)
         .await
         .map_err(|e| super::AppError(e.to_string()))?;
     Ok(Redirect::to(&next).into_response())
 }
 
-/// The first login with a username claims it with that password; later logins must match
+/// Returns the database admin role only after successful authentication.
 async fn authenticate(
     state: &AppState,
     username: &str,
     password: &str,
-) -> Result<Result<(), String>, sqlx::Error> {
+) -> Result<Result<bool, String>, sqlx::Error> {
     const WRONG: &str = "Incorrect password for this username";
     if password.is_empty() {
         return Ok(Err("Password is required".into()));
     }
     ensure_user(state, username).await?;
-    let stored: Option<String> =
-        sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
+    let (stored, is_admin): (Option<String>, bool) =
+        sqlx::query_as("SELECT password_hash, is_admin FROM users WHERE username = $1")
             .bind(username)
             .fetch_one(&state.db)
             .await?;
@@ -111,7 +114,7 @@ async fn authenticate(
         let matches = tokio::task::spawn_blocking(move || verify_password(&password, &hash))
             .await
             .expect("password check panicked");
-        return Ok(matches.then_some(()).ok_or(WRONG.into()));
+        return Ok(matches.then_some(is_admin).ok_or(WRONG.into()));
     }
     if password.chars().count() < MIN_PASSWORD_CHARS {
         return Ok(Err(format!(
@@ -119,7 +122,7 @@ async fn authenticate(
         )));
     }
     let claimed = sqlx::query(
-        "UPDATE users SET password_hash = $2 WHERE username = $1 AND password_hash IS NULL",
+        "UPDATE users SET password_hash = $2 WHERE username = $1 AND password_hash IS NULL AND NOT is_admin",
     )
     .bind(username)
     .bind(
@@ -131,7 +134,7 @@ async fn authenticate(
     .await?
     .rows_affected()
         == 1;
-    Ok(claimed.then_some(()).ok_or(WRONG.into()))
+    Ok(claimed.then_some(false).ok_or(WRONG.into()))
 }
 
 fn hash_password(password: &str) -> String {
@@ -163,64 +166,6 @@ async fn ensure_user(state: &AppState, username: &str) -> Result<(), sqlx::Error
     Ok(())
 }
 
-#[derive(Template)]
-#[template(path = "admin/login.html")]
-struct AdminLoginTemplate {
-    viewer: Viewer,
-    error: Option<String>,
-    username: String,
-}
-
-pub async fn admin_login_page(session: Session) -> AppResult {
-    if session::get_user(&session)
-        .await
-        .is_some_and(|u| u.is_admin)
-    {
-        return Ok(Redirect::to("/admin").into_response());
-    }
-    render(AdminLoginTemplate {
-        viewer: Viewer::from(session::get_user(&session).await.as_ref()),
-        error: None,
-        username: "admin".to_string(),
-    })
-}
-
-#[derive(Deserialize)]
-pub struct AdminLoginForm {
-    username: String,
-    password: String,
-}
-
-fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
-}
-
-pub async fn admin_login_post(
-    State(state): State<AppState>,
-    session: Session,
-    Form(form): Form<AdminLoginForm>,
-) -> AppResult {
-    let username = form.username.trim();
-    let error = if !constant_time_eq(form.password.as_bytes(), state.admin_password.as_bytes()) {
-        Some("Incorrect password".to_string())
-    } else {
-        validate_username(username).err()
-    };
-    if let Some(error) = error {
-        return render(AdminLoginTemplate {
-            viewer: Viewer::from(session::get_user(&session).await.as_ref()),
-            error: Some(error),
-            username: username.to_string(),
-        });
-    }
-
-    ensure_user(&state, username).await?;
-    session::set_user(&session, username.to_string(), true)
-        .await
-        .map_err(|e| super::AppError(e.to_string()))?;
-    Ok(Redirect::to("/admin").into_response())
-}
-
 pub async fn logout(session: Session) -> impl IntoResponse {
     let _ = session.flush().await;
     Redirect::to("/")
@@ -244,12 +189,5 @@ mod tests {
         assert!(verify_password("hunter2", &hash));
         assert!(!verify_password("hunter3", &hash));
         assert!(!verify_password("hunter2", "not a hash"));
-    }
-
-    #[test]
-    fn password_compare() {
-        assert!(constant_time_eq(b"secret", b"secret"));
-        assert!(!constant_time_eq(b"secret", b"secreT"));
-        assert!(!constant_time_eq(b"secret", b"secret2"));
     }
 }

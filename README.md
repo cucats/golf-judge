@@ -15,16 +15,16 @@ sandbox.
 docker compose -f compose.dev.yml up --build
 ```
 
-Open <http://localhost:3000>. Admin login is at `/admin/login` with password
-`admin`. The dev compose file runs the app container privileged, because
-isolate needs namespaces to sandbox submissions.
+Open <http://localhost:3000> and log in at `/login`.
+
+Admins use the same account and password to participate in contests and
+manage the site through `/admin`.
 
 ## Configuration
 
 | Variable           | Default          | Purpose                                                          |
 | ------------------ | ---------------- | ---------------------------------------------------------------- |
 | `DATABASE_URL`     | required         | Postgres connection string                                       |
-| `ADMIN_PASSWORD`   | random, printed  | Password for `/admin/login`                                      |
 | `JUDGE_WORKERS`    | CPU count        | Maximum submissions judged concurrently                          |
 | `INSECURE_COOKIES` | unset            | Set to allow the session cookie over plain http (local dev only) |
 

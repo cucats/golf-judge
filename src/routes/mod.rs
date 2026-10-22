@@ -89,7 +89,7 @@ pub async fn require_admin(session: &Session) -> Result<SessionUser, Response> {
     match session::get_user(session).await {
         Some(user) if user.is_admin => Ok(user),
         Some(_) => Err(Redirect::to("/").into_response()),
-        None => Err(Redirect::to("/admin/login").into_response()),
+        None => Err(login_redirect("/admin")),
     }
 }
 

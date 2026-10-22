@@ -19,15 +19,6 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    let admin_password = env::var("ADMIN_PASSWORD")
-        .ok()
-        .filter(|p| !p.is_empty())
-        .unwrap_or_else(|| {
-            let password = generate_token();
-            println!("ADMIN_PASSWORD not set; generated admin password: {password}");
-            password
-        });
-
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(10)
@@ -40,10 +31,7 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
-    let state = AppState {
-        db: pool,
-        admin_password,
-    };
+    let state = AppState { db: pool };
 
     let state_clone = state.clone();
     tokio::spawn(async move {
@@ -61,10 +49,6 @@ async fn main() {
         .route("/tips", get(routes::tips))
         .route("/login", get(auth::login_page).post(auth::login_post))
         .route("/logout", post(auth::logout))
-        .route(
-            "/admin/login",
-            get(auth::admin_login_page).post(auth::admin_login_post),
-        )
         .route("/admin", get(admin::dashboard))
         .route("/admin/contests", post(admin::create_contest))
         .route("/admin/contests/new", get(admin::new_contest_page))
@@ -124,11 +108,4 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("Server running on http://0.0.0.0:3000");
     axum::serve(listener, app).await.unwrap();
-}
-
-fn generate_token() -> String {
-    use base64::Engine;
-    use rand::Rng;
-    let bytes: [u8; 16] = rand::rng().random();
-    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }

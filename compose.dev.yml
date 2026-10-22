@@ -1,5 +1,5 @@
 # Local testing: docker compose -f compose.dev.yml up --build
-# Then open http://localhost:3000 (admin login at /admin/login, password "admin")
+# Then open http://localhost:3000 and log in with your account.
 services:
   app:
     build: .
@@ -7,7 +7,6 @@ services:
     security_opt: [seccomp=unconfined, apparmor=unconfined]
     environment:
       DATABASE_URL: postgres://user:password@db:5432/codegolf
-      ADMIN_PASSWORD: admin
       INSECURE_COOKIES: "1" # session cookie over plain http
     ports:
       - "3000:3000"

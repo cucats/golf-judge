@@ -59,9 +59,6 @@ pub async fn index(State(state): State<AppState>, session: Session) -> AppResult
 }
 
 async fn record_participant(state: &AppState, contest_id: i32, user: &SessionUser) {
-    if user.is_admin {
-        return;
-    }
     let _ = sqlx::query(
         "INSERT INTO contest_participants (contest_id, username, joined_at) VALUES ($1, $2, $3)
          ON CONFLICT DO NOTHING",
@@ -302,8 +299,6 @@ fn submit_blocked_reason(contest: &Contest, user: Option<&SessionUser>) -> Optio
         Some("Contest has ended".into())
     } else if user.is_none() {
         Some("Log in to submit".into())
-    } else if user.is_some_and(|u| u.is_admin) {
-        Some("Admins can test solutions from the problem editor".into())
     } else {
         None
     }
