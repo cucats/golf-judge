@@ -18,6 +18,7 @@
             {% endif %}
             {% if let Some(user) = viewer.username %}
                 <span class="nav-username">{{ user }}</span>
+                <a href="/change-password">Change password</a>
                 <form method="POST" action="/logout" style="display:inline">
                     <button type="submit" class="link-btn">Logout</button>
                 </form>

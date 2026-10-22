@@ -49,6 +49,10 @@ async fn main() {
         .route("/tips", get(routes::tips))
         .route("/login", get(auth::login_page).post(auth::login_post))
         .route("/logout", post(auth::logout))
+        .route(
+            "/change-password",
+            get(auth::change_password_page).post(auth::change_password_post),
+        )
         .route("/admin", get(admin::dashboard))
         .route("/admin/contests", post(admin::create_contest))
         .route("/admin/contests/new", get(admin::new_contest_page))

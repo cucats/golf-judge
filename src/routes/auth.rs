@@ -7,7 +7,7 @@ use axum::{
 use serde::Deserialize;
 use tower_sessions::Session;
 
-use super::{AppResult, Viewer, render, safe_next};
+use super::{AppResult, Viewer, login_redirect, render, safe_next};
 use crate::{session, state::AppState};
 
 const MAX_USERNAME_CHARS: usize = 32;
@@ -164,6 +164,118 @@ async fn ensure_user(state: &AppState, username: &str) -> Result<(), sqlx::Error
     .execute(&state.db)
     .await?;
     Ok(())
+}
+
+#[derive(Template)]
+#[template(path = "change-password.html")]
+struct ChangePasswordTemplate {
+    viewer: Viewer,
+    error: Option<String>,
+    changed: bool,
+}
+
+impl ChangePasswordTemplate {
+    fn min_password_chars(&self) -> usize {
+        MIN_PASSWORD_CHARS
+    }
+}
+
+pub async fn change_password_page(session: Session) -> AppResult {
+    let Some(user) = session::get_user(&session).await else {
+        return Ok(login_redirect("/change-password"));
+    };
+    let changed = session
+        .remove::<bool>("password_changed")
+        .await
+        .map_err(|e| super::AppError(e.to_string()))?
+        .unwrap_or(false);
+    render(ChangePasswordTemplate {
+        viewer: Viewer::from(Some(&user)),
+        error: None,
+        changed,
+    })
+}
+
+#[derive(Deserialize)]
+pub struct ChangePasswordForm {
+    current_password: String,
+    new_password: String,
+    confirm_password: String,
+}
+
+pub async fn change_password_post(
+    State(state): State<AppState>,
+    session: Session,
+    Form(form): Form<ChangePasswordForm>,
+) -> AppResult {
+    let Some(user) = session::get_user(&session).await else {
+        return Ok(login_redirect("/change-password"));
+    };
+    if let Err(error) = change_password(&state, &user.username, form).await? {
+        return render(ChangePasswordTemplate {
+            viewer: Viewer::from(Some(&user)),
+            error: Some(error),
+            changed: false,
+        });
+    }
+    session
+        .cycle_id()
+        .await
+        .map_err(|e| super::AppError(e.to_string()))?;
+    session
+        .insert("password_changed", true)
+        .await
+        .map_err(|e| super::AppError(e.to_string()))?;
+    Ok(Redirect::to("/change-password").into_response())
+}
+
+async fn change_password(
+    state: &AppState,
+    username: &str,
+    form: ChangePasswordForm,
+) -> Result<Result<(), String>, sqlx::Error> {
+    if form.current_password.is_empty() {
+        return Ok(Err("Current password is required".into()));
+    }
+    if form.new_password.chars().count() < MIN_PASSWORD_CHARS {
+        return Ok(Err(format!(
+            "Choose a password of at least {MIN_PASSWORD_CHARS} characters"
+        )));
+    }
+    if form.new_password != form.confirm_password {
+        return Ok(Err("New passwords do not match".into()));
+    }
+    let stored: Option<Option<String>> =
+        sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
+            .bind(username)
+            .fetch_optional(&state.db)
+            .await?;
+    let Some(stored) = stored.flatten() else {
+        return Ok(Err("Incorrect current password".into()));
+    };
+    let old_hash = stored.clone();
+    let new_hash = tokio::task::spawn_blocking(move || {
+        verify_password(&form.current_password, &old_hash)
+            .then(|| hash_password(&form.new_password))
+    })
+    .await
+    .expect("password change hashing panicked");
+    let Some(new_hash) = new_hash else {
+        return Ok(Err("Incorrect current password".into()));
+    };
+    let changed = sqlx::query(
+        "UPDATE users SET password_hash = $2 WHERE username = $1 AND password_hash = $3",
+    )
+    .bind(username)
+    .bind(new_hash)
+    .bind(stored)
+    .execute(&state.db)
+    .await?
+    .rows_affected()
+        == 1;
+    Ok(changed
+        .then_some(())
+        .ok_or("Password changed in another session. Please try again.".into()))
 }
 
 pub async fn logout(session: Session) -> impl IntoResponse {
