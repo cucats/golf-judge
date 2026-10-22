@@ -10,16 +10,20 @@ export interface Contest {
   status: string;
   created_at: number;
 }
+export interface TestCase {
+  input: string;
+  output: string;
+  public: boolean;
+}
 export interface Problem {
   id: number;
   title: string;
   statement: string;
-  test_input: string;
-  test_output: string;
+  test_cases: TestCase[];
+  test_count: number;
   grader: string;
   time_limit_ms: number;
   memory_limit_kb: number;
-  public_test_count: number;
   result_mode: "value" | "truthy";
 }
 export interface ProblemSummary {

@@ -93,9 +93,7 @@ export async function enqueue(
         contestId === undefined ? null : jobId,
         code,
         JSON.stringify(problem),
-        problem.test_output.trim()
-          ? problem.test_output.trim().split(/\r?\n/).length
-          : 0,
+        problem.test_count,
         now(),
       ],
     );

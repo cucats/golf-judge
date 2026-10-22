@@ -9,17 +9,15 @@ const problem: Problem = {
   title: "Sandbox check",
   statement: "",
   result_mode: "value",
-  grader: `import sys
-from submission import f
-for i, value in enumerate(sys.stdin.read().splitlines(), 1):
- print(f'TESTCASE {i}: {value}', file=sys.stderr)
- print(f(int(value)))
-`,
-  test_input: "1\n948723\n3\n",
-  test_output: "2\n1897446\n6\n",
+  grader: `from submission import f\nprint(f(int(input())))\n`,
+  test_cases: [
+    { input: "1", output: "2", public: true },
+    { input: "948723", output: "1897446", public: false },
+    { input: "3", output: "6", public: false },
+  ],
+  test_count: 3,
   time_limit_ms: 1000,
   memory_limit_kb: 131072,
-  public_test_count: 1,
 };
 
 describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
@@ -35,16 +33,79 @@ describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
         ...problem,
         grader:
           "from submission import f\na=(2**200, {'x': {1, 2}}, b'abc', [True, None], frozenset([3]))\nprint(f(a)==a)",
-        test_input: "",
-        test_output: "True",
+        test_cases: [{ input: "", output: "True", public: false }],
+        test_count: 1,
       },
       "f=lambda x:x",
     );
     expect(typed.verdict).toBe("AC");
   });
+  test("reuses submission state between cases and resets it for the next submission", async () => {
+    const stateful = {
+      ...problem,
+      test_cases: problem.test_cases.map((test, index) => ({
+        ...test,
+        output: String(index + 1),
+      })),
+    };
+    const code =
+      "n=0\ndef f(x,a=[]):\n global n\n n+=1\n a.append(x)\n return len(a) if n==len(a) else 0";
+    expect((await judge(stateful, code)).verdict).toBe("AC");
+    expect((await judge(stateful, code)).verdict).toBe("AC");
+    const files = {
+      ...problem,
+      test_cases: problem.test_cases.map((test, index) => ({
+        ...test,
+        output: index === 0 ? "1" : "2",
+      })),
+    };
+    const fileCode =
+      "import os\ndef f(x):\n p='/tmp/previous'\n n=1+os.path.exists(p)\n open(p,'w').close()\n return n";
+    expect((await judge(files, fileCode)).verdict).toBe("AC");
+    expect((await judge(files, fileCode)).verdict).toBe("AC");
+  }, 10000);
+  test("per-case grader receives separate multiline and empty inputs and outputs", async () => {
+    const result = await judge(
+      {
+        ...problem,
+        grader:
+          'import sys\nfrom submission import f\nprint(f(sys.stdin.read()), end="")',
+        test_cases: [
+          { input: "one\ntwo\n", output: "one\ntwo\n", public: true },
+          { input: "", output: "", public: false },
+          { input: "last", output: "last", public: true },
+        ],
+      },
+      "f=lambda x:x",
+    );
+    expect(result.verdict).toBe("AC");
+    expect(result.passed).toBe(3);
+  });
+  test("visibility belongs to each pair, independent of ordering", async () => {
+    const result = await judge(
+      {
+        ...problem,
+        test_cases: problem.test_cases.map((test, i) => ({
+          ...test,
+          public: i === 1,
+        })),
+      },
+      "f=lambda x:2 if x==1 else 0",
+    );
+    expect(result.failure?.case).toBe(2);
+    expect(result.failure?.public).toBe(true);
+    expect(result.failure?.input).toBe("948723");
+  });
   test("normalizes arbitrary truthy results before crossing the boundary", async () => {
     const result = await judge(
-      { ...problem, result_mode: "truthy", test_output: "True\nTrue\nTrue" },
+      {
+        ...problem,
+        result_mode: "truthy",
+        test_cases: problem.test_cases.map((test) => ({
+          ...test,
+          output: "True",
+        })),
+      },
       "import re\nf=lambda x:re.match('.',str(x))",
     );
     expect(result.verdict).toBe("AC");
@@ -55,11 +116,17 @@ describe.skipIf(process.env.RUN_SANDBOX_TESTS !== "1")("isolated judge", () => {
       "def f(x):\n if x==1:return 2\n raise ValueError(str(x))",
     );
     expect(result.verdict).toBe("RE");
-    expect(result.passed).toBe(1);
+    expect(result.passed).toBe((result.completed ?? 0) - 1);
     expect(JSON.stringify(result)).not.toContain("948723");
     expect(result.failure?.line).toBe(3);
     const forged = await judge(
-      { ...problem, public_test_count: 0 },
+      {
+        ...problem,
+        test_cases: problem.test_cases.map((test) => ({
+          ...test,
+          public: false,
+        })),
+      },
       "import sys\nprint('TESTCASE 999: secret',file=sys.stderr)\nf=lambda x:0",
     );
     expect(forged.verdict).toBe("WA");

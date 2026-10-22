@@ -7,87 +7,57 @@ import { markdown } from "../src/lib/markdown";
 import { safeNext, hashPassword, verifyPassword } from "../src/lib/server/auth";
 
 describe("judge verdicts", () => {
-  test("compares lines, accepting CRLF and trailing whitespace", () => {
-    expect(evaluate("OK", 10, "1 \r\n2\r\n", "", "1\n2\n").verdict).toBe("AC");
+  const testCase = { input: "input", output: "1\n2", public: true };
+  test("compares one complete output, including multiline and empty cases", () => {
+    expect(evaluate("OK", 10, "1 \r\n2\r\n", testCase).verdict).toBe("AC");
+    expect(evaluate("OK", 10, "", { ...testCase, output: "" }).verdict).toBe(
+      "AC",
+    );
+    expect(evaluate("OK", 10, " 1\n2", testCase).verdict).toBe("WA");
   });
-  test("reports the first mismatch with its test input", () => {
-    const result = evaluate(
-      "OK",
-      10,
-      "1\n3\n",
-      "TESTCASE 1: a:b\nTESTCASE 2: c\n",
-      "1\n2\n",
-      2,
-    );
-    expect(result.verdict).toBe("WA");
-    expect(result.output).toContain("Passed 1/2");
-    expect(result.output).toContain("Input: c\n\nExpected: 2\nGot: 3");
-    expect(evaluate("OK", 0, "1\n", "", "1\n2", 2).output).toContain(
-      "Got: (no output)",
-    );
-    expect(evaluate("OK", 0, "1\n2\n3", "", "1\n2").output).toContain(
-      "Failed on private test case 3",
-    );
+  test("public failure values come directly from the case", () => {
+    const result = evaluate("OK", 10, "wrong\n", testCase, 4);
+    expect(result.failure).toEqual({
+      case: 4,
+      public: true,
+      input: "input",
+      expected: "1\n2",
+      actual: "wrong\n",
+    });
   });
-  test("distinguishes runtime failures and timeouts", () => {
-    expect(
-      evaluate(
-        "RE",
-        3,
-        "",
-        "TESTCASE 1: {'k': 1}\nTraceback: boom\n",
-        "1\n2",
-        1,
-      ).output,
-    ).toContain("Input: {'k': 1}");
-    const timeout = evaluate("TO", 1000, "", "TESTCASE 2: x\n", "1\n2\n3");
-    expect(timeout.verdict).toBe("TLE");
-    expect(timeout.output).toContain("Passed 0/3");
-    expect(
-      evaluate("TO", 1000, "wrong\n", "TESTCASE 2: secret\n", "1\n2\n3").passed,
-    ).toBe(0);
-    expect(
-      evaluate("TO", 1000, "1\n", "TESTCASE 2: secret\n", "1\n2\n3").passed,
-    ).toBe(1);
+  test("runtime failures and timeouts never count partial output as a pass", () => {
+    expect(evaluate("RE", 10, "1\n2", testCase).passed).toBe(0);
+    expect(evaluate("TO", 1000, "", testCase).verdict).toBe("TLE");
   });
-  test("private failures never disclose inputs, answers or exception messages", () => {
-    const wrong = evaluate(
-      "OK",
-      0,
-      "leaked input\n",
-      "TESTCASE 1: secret input\n",
-      "secret answer",
-    );
+  test("private failures hide values and arbitrary exception messages", () => {
+    const hidden = {
+      input: "secret input",
+      output: "secret answer",
+      public: false,
+    };
+    const wrong = evaluate("OK", 0, "leaked input", hidden);
     expect(wrong.failure).toEqual({ case: 1, public: false });
-    expect(wrong.output).not.toContain("secret");
-    expect(wrong.output).not.toContain("leaked");
-    const error = evaluate(
-      "RE",
-      0,
-      "",
-      "TESTCASE 1: secret input\n",
-      "secret answer",
-      0,
-      {
-        kind: "ValueError",
-        message: "secret input",
-        line: 2,
-      },
-    );
+    const error = evaluate("RE", 0, "", hidden, 1, {
+      kind: "ValueError",
+      message: "secret input",
+      line: 2,
+    });
     expect(error.failure?.error).toBe("ValueError");
     expect(error.failure?.line).toBe(2);
-    expect(error.output).not.toContain("secret");
+    expect(JSON.stringify([wrong, error])).not.toContain("secret");
+    expect(JSON.stringify([wrong, error])).not.toContain("leaked");
   });
   test("bounds diagnostics and rejects oversized UTF-8 submissions", () => {
     expect(
-      evaluate("WA", 0, "é".repeat(5000), "", "x", 1).output.length,
+      evaluate("OK", 0, "é".repeat(5000), testCase).failure!.actual!.length,
     ).toBeLessThan(5000);
-    expect(
-      validateCode({ ...defaultProblem, test_output: "x" }, "é".repeat(5121)),
-    ).toContain("10242 bytes");
-    expect(
-      validateCode({ ...defaultProblem, test_output: "x" }, "f=lambda x:x"),
-    ).toBeNull();
+    const problem = {
+      ...defaultProblem,
+      test_cases: [testCase],
+      test_count: 1,
+    };
+    expect(validateCode(problem, "é".repeat(5121))).toContain("10242 bytes");
+    expect(validateCode(problem, "f=lambda x:x")).toBeNull();
   });
 });
 

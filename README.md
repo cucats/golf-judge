@@ -32,24 +32,27 @@ manage the site through `/admin`.
 | Variable           | Default   | Purpose                                                          |
 | ------------------ | --------- | ---------------------------------------------------------------- |
 | `DATABASE_URL`     | required  | Postgres connection string                                       |
-| `JUDGE_WORKERS`    | CPU count | Maximum submissions judged concurrently                          |
+| `JUDGE_WORKERS`    | CPU count | Maximum submissions judged concurrently                         |
 | `INSECURE_COOKIES` | unset     | Set to allow the session cookie over plain http (local dev only) |
 
 ## Problems
 
-Each problem has a Markdown statement, test input, expected output, a Python
-grader, and time/memory limits. The grader runs in a separate sandbox from the
-submission. It reads test input on stdin, imports `f` from `submission`, calls
-it for each case, and prints one line per case. Arguments and results cross
+Each problem has a Markdown statement, a list of input/output pairs, a Python
+grader, and time/memory limits. PostgreSQL derives the stored `test_count`
+from that list. Grader and submission processes run in separate sandboxes
+that are reused across the suite; submission state persists between cases.
+The time limit covers the whole suite. The grader reads
+that case's input on stdin, imports `f` from `submission`, calls it, and prints
+the output for that case. Outputs may contain multiple lines or be empty.
+Arguments and results cross
 the sandbox boundary as built-in Python values; grader code and expected
 answers stay outside the contestant's sandbox. For problems accepting any
 truthy or falsy result, select that return value mode in the problem editor.
 
-Output is compared line by line with the expected output. Before each case,
-the grader should write `TESTCASE n: <description>` to stderr. The public test
-count marks the first N cases whose failure details may be shown; all other
-case inputs, outputs, and exception messages stay private. Put the public
-examples in the statement too.
+Each pair explicitly specifies whether it is public. Public failures show
+input, expected output, and actual output; private failures hide those values
+and exception messages. There is no count header or stderr marker protocol.
+Put public examples in the statement too.
 
 Submissions are queued in PostgreSQL before grading starts. Feedback updates
 live, reconnects after a page reload, and unfinished jobs resume after a server

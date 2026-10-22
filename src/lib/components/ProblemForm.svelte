@@ -18,15 +18,26 @@
     };
     form?: { error: string; problem: Problem } | null;
   } = $props();
+  const copyProblem = (problem: Problem): Problem => ({
+    ...problem,
+    test_cases: problem.test_cases.map((test) => ({ ...test })),
+  });
   let p = $state<Problem>(
-    untrack(() => ({ ...(form?.problem ?? data.problem) })),
+    untrack(() => copyProblem(form?.problem ?? data.problem)),
   );
   $effect(() => {
-    p = { ...(form?.problem ?? data.problem) };
+    p = copyProblem(form?.problem ?? data.problem);
+    selectedCase = 0;
   });
-  const testCount = $derived(
-    p.test_output.trim() ? p.test_output.trim().split(/\r?\n/).length : 0,
-  );
+  let selectedCase = $state(0);
+  function addCase() {
+    p.test_cases.push({ input: "", output: "", public: true });
+    selectedCase = p.test_cases.length - 1;
+  }
+  function removeCase() {
+    p.test_cases.splice(selectedCase, 1);
+    selectedCase = Math.max(0, Math.min(selectedCase, p.test_cases.length - 1));
+  }
 </script>
 
 <svelte:head
@@ -58,18 +69,13 @@
         </p>{/each}
     </div>{/if}
   <div class="help-box">
-    <strong>Grading protocol.</strong> The contestant's code defines a function
-    <code>f</code>
-    in its submission. The grader runs separately from the submitted code. It receives
-    the test input on stdin, must <Code code="from submission import f" />, call
-    <code>f</code>
-    once per test case, and print one line of output per case. Stdout is compared
-    line-by-line against the expected output (trailing whitespace is ignored). Before
-    each case, the grader should write
-    <code>TESTCASE n: &lt;input description&gt;</code>
-    to stderr to describe that case. Public cases can show their inputs and expected
-    and actual outputs; private case inputs and outputs stay hidden. The time limit
-    applies to the whole run, across all test cases. Expected test count: {testCount}.
+    <strong>Grading protocol.</strong> Each input/output pair is one test case.
+    The grader and submitted code each run in one sandbox for the whole suite.
+    The grader receives each case's input on stdin, uses <Code
+      code="from submission import f"
+    />, and prints the output to compare with that case's expected output.
+    Trailing whitespace is ignored. The time limit applies to the whole suite.
+    Public cases show failure values; private cases keep those values hidden.
   </div>
   <form method="POST">
     <div class="field">
@@ -96,38 +102,54 @@
         <Markdown source={p.statement} preview />
       </div>
     </div>
-    <div class="field">
-      <label for="test-input">Test input</label><textarea
-        id="test-input"
-        name="test_input"
-        bind:value={p.test_input}
-        class="mono code-area"
-        spellcheck="false"></textarea>
-    </div>
-    <div class="field">
-      <label for="test-output">Test output (one line per case)</label><textarea
-        id="test-output"
-        name="test_output"
-        bind:value={p.test_output}
-        class="mono code-area"
-        spellcheck="false"></textarea>
-    </div>
-    <div class="field">
-      <label for="public-test-count">Public test cases</label><input
-        id="public-test-count"
-        name="public_test_count"
-        type="number"
-        min="0"
-        max={testCount}
-        bind:value={p.public_test_count}
-        required
-        aria-describedby="public-test-help"
+    <section class="test-cases" aria-label="Test cases">
+      <input
+        type="hidden"
+        name="test_cases"
+        value={JSON.stringify(p.test_cases)}
       />
-      <p id="public-test-help" class="muted">
-        Failure details for the first N cases are public. Use 0 to keep every
-        case private.
-      </p>
-    </div>
+      <strong>Test cases · {p.test_cases.length}</strong>
+      <div class="btn-row case-controls">
+        {#if p.test_cases.length}
+          <label for="test-case">Case</label>
+          <select id="test-case" bind:value={selectedCase}>
+            {#each p.test_cases as test, index}<option value={index}
+                >{index + 1}{test.public ? " · public" : ""}</option
+              >{/each}
+          </select>
+        {/if}
+        <button type="button" onclick={addCase}>Add case</button>
+        {#if p.test_cases.length}<button
+            type="button"
+            class="danger"
+            onclick={removeCase}>Remove case</button
+          >{/if}
+      </div>
+      {#if p.test_cases[selectedCase]}
+        <div class="case-fields">
+          <div class="field">
+            <label for="test-input">Input</label><textarea
+              id="test-input"
+              bind:value={p.test_cases[selectedCase].input}
+              class="mono code-area"
+              spellcheck="false"></textarea>
+          </div>
+          <div class="field">
+            <label for="test-output">Expected output</label><textarea
+              id="test-output"
+              bind:value={p.test_cases[selectedCase].output}
+              class="mono code-area"
+              spellcheck="false"></textarea>
+          </div>
+        </div>
+        <label class="case-visibility"
+          ><input
+            type="checkbox"
+            bind:checked={p.test_cases[selectedCase].public}
+          /> Public case</label
+        >
+      {/if}
+    </section>
     <div class="field">
       <strong>Grader</strong><Editor
         name="grader"
@@ -152,7 +174,7 @@
     </div>
     <div class="btn-row">
       <div class="field">
-        <label for="time">Time limit (ms, whole run)</label><input
+        <label for="time">Time limit (ms, whole suite)</label><input
           id="time"
           name="time_limit_ms"
           type="number"
@@ -192,3 +214,33 @@
         />
       </section>{/key}{/if}
 </div>
+
+<style>
+  .test-cases {
+    margin: 20px 0;
+  }
+  .case-controls {
+    margin: 12px 0;
+  }
+  .case-controls select {
+    width: auto;
+  }
+  .case-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .case-visibility {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .case-visibility input {
+    width: auto;
+  }
+  @media (max-width: 700px) {
+    .case-fields {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

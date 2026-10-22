@@ -19,6 +19,7 @@ export const load = async (event: Parameters<PageServerLoad>[0]) => {
       title: p.title,
       problem_order: p.problem_order,
       time_limit_ms: p.time_limit_ms,
+      test_count: p.test_count,
       memory_limit_kb: p.memory_limit_kb,
     },
     html: markdown(p.statement),

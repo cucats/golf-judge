@@ -8,12 +8,11 @@ export const defaultProblem: Problem = {
   id: 0,
   title: "",
   statement: "",
-  test_input: "",
-  test_output: "",
-  grader: `from submission import f\n\n__t = int(input())\nfor __i in range(__t):\n    __s = input()\n    __import__('sys').stderr.write(f"TESTCASE {__i + 1}: {__s!r}\\n")\n    print(f(__s))\n`,
+  test_cases: [],
+  test_count: 0,
+  grader: `from submission import f\n\nprint(f(input()))\n`,
   time_limit_ms: 1000,
   memory_limit_kb: 262144,
-  public_test_count: 0,
   result_mode: "value",
 };
 export const usage = (pid: number) =>
@@ -26,28 +25,43 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
   if (pid) await problem(pid);
   const f = await event.request.formData();
   const text = (key: string) => normalize(String(f.get(key) ?? ""));
+  let tests: unknown;
+  try {
+    tests = JSON.parse(text("test_cases"));
+  } catch {
+    tests = null;
+  }
+  const validTests =
+    Array.isArray(tests) &&
+    tests.every(
+      (test) =>
+        test &&
+        typeof test === "object" &&
+        typeof test.input === "string" &&
+        typeof test.output === "string" &&
+        typeof test.public === "boolean",
+    );
   const p: Problem = {
     id: pid,
     title: text("title").trim(),
     statement: text("statement"),
-    test_input: text("test_input"),
-    test_output: text("test_output"),
+    test_cases: validTests
+      ? (tests as Problem["test_cases"]).map((test) => ({
+          input: normalize(test.input),
+          output: normalize(test.output),
+          public: test.public,
+        }))
+      : [],
+    test_count: validTests ? (tests as unknown[]).length : 0,
     grader: text("grader"),
     time_limit_ms: Number(text("time_limit_ms")),
     memory_limit_kb: Number(text("memory_limit_mb")) * 1024,
-    public_test_count: Number(text("public_test_count")),
     result_mode: text("result_mode") as Problem["result_mode"],
   };
   let message = "";
   if (!p.title) message = "Title is required";
-  else if (
-    !Number.isInteger(p.public_test_count) ||
-    p.public_test_count < 0 ||
-    p.public_test_count >
-      (p.test_output.trim() ? p.test_output.trim().split(/\r?\n/).length : 0)
-  )
-    message =
-      "Public test count must be between 0 and the number of expected output lines";
+  else if (!validTests)
+    message = "Tests must be input/output pairs with an explicit visibility";
   else if (p.result_mode !== "value" && p.result_mode !== "truthy")
     message = "Choose a return value mode";
   else if ([...p.title].length > 200)
@@ -68,23 +82,21 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
   const values = [
     p.title,
     p.statement,
-    p.test_input,
-    p.test_output,
+    JSON.stringify(p.test_cases),
     p.grader,
     p.time_limit_ms,
     p.memory_limit_kb,
     now(),
-    p.public_test_count,
     p.result_mode,
   ];
   if (pid)
     await query(
-      "UPDATE problems SET title=$1,statement=$2,test_input=$3,test_output=$4,grader=$5,time_limit_ms=$6,memory_limit_kb=$7,updated_at=$8,public_test_count=$9,result_mode=$10 WHERE id=$11",
+      "UPDATE problems SET title=$1,statement=$2,test_cases=$3,grader=$4,time_limit_ms=$5,memory_limit_kb=$6,updated_at=$7,result_mode=$8 WHERE id=$9",
       [...values, pid],
     );
   else
     pid = (await one<{ id: number }>(
-      "INSERT INTO problems (title,statement,test_input,test_output,grader,time_limit_ms,memory_limit_kb,created_at,updated_at,public_test_count,result_mode) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$9,$10) RETURNING id",
+      "INSERT INTO problems (title,statement,test_cases,grader,time_limit_ms,memory_limit_kb,created_at,updated_at,result_mode) VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8) RETURNING id",
       values,
     ))!.id;
   redirect(303, `/admin/problems/${pid}?saved=1`);

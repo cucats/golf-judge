@@ -25,6 +25,9 @@ RUN git clone --depth 1 --branch v2.7 https://github.com/ioi/isolate.git /tmp/is
 # Submissions run on this interpreter; 3.15 adds unpacking in comprehensions
 FROM python:3.15.0-slim-trixie
 
+# Sandboxed Python can read bytecode without recompiling the standard library.
+RUN python3 -m compileall -q /usr/local/lib/python3.15
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcap2 libseccomp2 libsystemd0 \
     && rm -rf /var/lib/apt/lists/*
@@ -50,6 +53,7 @@ COPY package.json ./
 COPY migrations ./migrations
 COPY scripts/migrate.mjs ./scripts/migrate.mjs
 COPY scripts/judge ./scripts/judge
+COPY scripts/migrations ./scripts/migrations
 
 EXPOSE 3000
 

@@ -47,8 +47,8 @@
   <section class="card">
     <h2>{label(data.problem.problem_order)}. {data.problem.title}</h2>
     <p class="muted">
-      Time limit {data.problem.time_limit_ms} ms (whole run) · Memory {data
-        .problem.memory_limit_kb / 1024} MB{#if best !== null}
+      {data.problem.test_count} cases · Time limit {data.problem.time_limit_ms} ms
+      total · Memory {data.problem.memory_limit_kb / 1024} MB{#if best !== null}
         · Best: {best} bytes{/if}
     </p>
     <Markdown html={data.html} />
