@@ -16,7 +16,7 @@ export const actions = {
       String(f.get("password") ?? ""),
     );
     if (message) return fail(400, { error: message, username, next });
-    login(event, username);
+    await login(event, username);
     redirect(303, next);
   },
 };

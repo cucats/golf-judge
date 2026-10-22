@@ -1,48 +1,54 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import type { Contest, User } from "#lib/types.js";
 import { ended, now } from "#lib/types.js";
 import { one, query } from "./db.js";
-const sessions = new Map<string, { username: string; expires: number }>();
 const lifetime = 86400;
 const cookie = "golf_session";
+const tokenHash = (token: string) =>
+  createHash("sha256").update(token).digest("hex");
 export const safeNext = (next: string | null) =>
   next?.startsWith("/") && !next.startsWith("//") && !/[\\\p{Cc}]/u.test(next)
     ? next
     : "/";
 export async function getUser(event: RequestEvent): Promise<User | null> {
   const token = event.cookies.get(cookie);
-  const session = token ? sessions.get(token) : undefined;
-  if (!session || session.expires <= now()) {
-    if (token) sessions.delete(token);
+  if (!token) return null;
+  const user = await one<User>(
+    `UPDATE sessions AS s SET expires_at=GREATEST(s.expires_at,$2::bigint+$3::bigint)
+     FROM users AS u
+     WHERE s.token_hash=$1 AND s.expires_at>$2 AND u.username=s.username
+     RETURNING u.username,u.is_admin`,
+    [tokenHash(token), now(), lifetime],
+  );
+  if (!user) {
+    event.cookies.delete(cookie, { path: "/" });
     return null;
   }
-  session.expires = now() + lifetime;
-  event.cookies.set(cookie, token!, {
+  event.cookies.set(cookie, token, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.INSECURE_COOKIES === undefined,
     maxAge: lifetime,
   });
-  return (
-    (await one<User>("SELECT username,is_admin FROM users WHERE username=$1", [
-      session.username,
-    ])) ?? null
-  );
+  return user;
 }
-export function logout(event: RequestEvent) {
+export async function logout(event: RequestEvent) {
   const token = event.cookies.get(cookie);
-  if (token) sessions.delete(token);
+  if (token)
+    await query("DELETE FROM sessions WHERE token_hash=$1", [tokenHash(token)]);
   event.cookies.delete(cookie, { path: "/" });
 }
-export function login(event: RequestEvent, username: string) {
-  logout(event);
-  for (const [key, session] of sessions)
-    if (session.expires <= now()) sessions.delete(key);
+export async function login(event: RequestEvent, username: string) {
+  await logout(event);
+  await query("DELETE FROM sessions WHERE expires_at<=$1", [now()]);
   const token = randomBytes(32).toString("base64url");
-  sessions.set(token, { username, expires: now() + lifetime });
+  await query(
+    "INSERT INTO sessions (token_hash,username,expires_at) VALUES ($1,$2,$3)",
+    [tokenHash(token), username, now() + lifetime],
+  );
   event.cookies.set(cookie, token, {
     path: "/",
     httpOnly: true,

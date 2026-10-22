@@ -36,7 +36,7 @@ export const actions = {
       return fail(400, {
         error: "Password changed in another session. Please try again.",
       });
-    login(event, user.username);
+    await login(event, user.username);
     return { changed: true };
   },
 };
