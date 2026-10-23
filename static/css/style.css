@@ -250,12 +250,24 @@ a:hover {
 .nav-user {
 	display: flex;
 	align-items: center;
+	justify-content: flex-end;
 	flex-wrap: wrap;
 	gap: 8px 20px;
+	min-width: 0;
+	max-width: 100%;
 }
 
 .nav-username {
 	color: #94a3b8;
+	min-width: 0;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+
+.nav-user > a,
+.nav-user > form {
+	flex-shrink: 0;
+	white-space: nowrap;
 }
 
 .nav form {
