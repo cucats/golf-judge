@@ -1,15 +1,16 @@
 import type { PageServerLoad, Actions } from "./$types";
-import { error, redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import { contest, query } from "#lib/server/db.js";
+import { requireUser } from "#lib/server/auth.js";
 import { leaderboard } from "#lib/server/leaderboard.js";
-import { ended } from "#lib/types.js";
 import type { Submission } from "#lib/types.js";
 export const load = async (event: Parameters<PageServerLoad>[0]) => {
+  const viewer = requireUser(event);
+  const user = event.url.searchParams.get("user");
+  if (!viewer.is_admin && viewer.username !== user)
+    error(403, "You can only view your own submissions");
   const c = await contest(event.params.id);
-  if (!ended(c) && !event.locals.user?.is_admin)
-    redirect(303, `/contest/${c.id}/leaderboard`);
-  const board = await leaderboard(c.id),
-    user = event.url.searchParams.get("user");
+  const board = await leaderboard(c.id);
   const entry = board.entries.find((e) => e.username === user);
   if (!entry) error(404, "Player not found");
   const submissions = await query<Submission>(

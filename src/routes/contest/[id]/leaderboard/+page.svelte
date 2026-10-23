@@ -35,9 +35,10 @@
             >{/each}</tr
         ></thead
       ><tbody
-        >{#each data.board.entries as e}<tr
+        >{#each data.board.entries as e}{@const inspect =
+            data.inspect || e.username === data.user?.username}<tr
             ><td class="muted">{e.rank}</td><td
-              >{#if data.inspect}<a
+              >{#if inspect}<a
                   class="player-link"
                   href={`/contest/${data.contest.id}/submissions?user=${encodeURIComponent(e.username)}`}
                   >{e.username}</a
@@ -45,7 +46,7 @@
             ><td class="muted">{e.problems_solved}</td><td
               class="leaderboard-total">{e.total_bytes}</td
             >{#each e.problem_results as result, i}<td
-                >{#if result}{@const score = `${result.medal === "diamond" ? "💎 " : result.medal === "gold" ? "🥇 " : ""}${result.code_length}`}{#if data.inspect}<a
+                >{#if result}{@const score = `${result.medal === "diamond" ? "💎 " : result.medal === "gold" ? "🥇 " : ""}${result.code_length}`}{#if inspect}<a
                       class="score-link"
                       href={`/contest/${data.contest.id}/submissions?user=${encodeURIComponent(e.username)}&problem=${data.board.problems[i].id}`}
                       ><span class={`score-${result.medal}`}>{score}</span></a
