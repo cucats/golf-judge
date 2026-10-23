@@ -87,12 +87,10 @@
         class:selected={p.id === selected?.id}
         class:unsolved={!p.result}
       >
+        <span class="pc-label">{label(p.problem_order)}</span>
         <a
-          class="problem-link"
-          href={`/contest/${data.contest.id}/problems/${p.id}`}
-          ><span class="pc-label">{label(p.problem_order)}</span><span
-            class="pc-title">{p.title}</span
-          ></a
+          class="problem-link pc-title"
+          href={`/contest/${data.contest.id}/problems/${p.id}`}>{p.title}</a
         ><a
           class="pc-score score-link"
           href={`/contest/${data.contest.id}/submissions?user=${userQuery}${p.id === selected?.id ? "" : `&problem=${p.id}`}`}
@@ -199,9 +197,27 @@
 </div>
 
 <style>
+  .problem-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  }
+  .problem-card {
+    position: relative;
+  }
   .problem-link {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    position: relative;
+    z-index: 1;
+  }
+  .pc-score {
+    white-space: nowrap;
+  }
+  .pc-score::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .pc-score:focus-visible::after {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+    border-radius: 8px;
   }
 </style>
