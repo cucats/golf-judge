@@ -11,6 +11,7 @@ export const defaultProblem: Problem = {
   test_cases: [],
   test_count: 0,
   grader: `from submission import f\n\nprint(f(input()))\n`,
+  solution: "",
   time_limit_ms: 1000,
   memory_limit_kb: 262144,
 };
@@ -53,6 +54,7 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
       : [],
     test_count: validTests ? (tests as unknown[]).length : 0,
     grader: text("grader"),
+    solution: text("solution"),
     time_limit_ms: Number(text("time_limit_ms")),
     memory_limit_kb: Number(text("memory_limit_mb")) * 1024,
   };
@@ -60,6 +62,8 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
   if (!p.title) message = "Title is required";
   else if (!validTests)
     message = "Tests must be input/output pairs with an explicit visibility";
+  else if (Buffer.byteLength(p.solution) > 10240)
+    message = "Solution must be at most 10240 bytes";
   else if ([...p.title].length > 200)
     message = "Title must be at most 200 characters";
   else if (
@@ -83,15 +87,16 @@ export async function saveProblem(event: RequestEvent, pid = 0) {
     p.time_limit_ms,
     p.memory_limit_kb,
     now(),
+    p.solution,
   ];
   if (pid)
     await query(
-      "UPDATE problems SET title=$1,statement=$2,test_cases=$3,grader=$4,time_limit_ms=$5,memory_limit_kb=$6,updated_at=$7 WHERE id=$8",
+      "UPDATE problems SET title=$1,statement=$2,test_cases=$3,grader=$4,time_limit_ms=$5,memory_limit_kb=$6,updated_at=$7,solution=$8 WHERE id=$9",
       [...values, pid],
     );
   else
     pid = (await one<{ id: number }>(
-      "INSERT INTO problems (title,statement,test_cases,grader,time_limit_ms,memory_limit_kb,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$7) RETURNING id",
+      "INSERT INTO problems (title,statement,test_cases,grader,time_limit_ms,memory_limit_kb,created_at,updated_at,solution) VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8) RETURNING id",
       values,
     ))!.id;
   redirect(303, `/admin/problems/${pid}?saved=1`);

@@ -22,9 +22,19 @@ export interface Problem {
   test_cases: TestCase[];
   test_count: number;
   grader: string;
+  solution: string;
   time_limit_ms: number;
   memory_limit_kb: number;
 }
+export type JudgeProblem = Pick<
+  Problem,
+  | "id"
+  | "grader"
+  | "test_cases"
+  | "test_count"
+  | "time_limit_ms"
+  | "memory_limit_kb"
+>;
 export interface ProblemSummary {
   id: number;
   title: string;

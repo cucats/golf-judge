@@ -78,6 +78,7 @@
         </p>{/each}
     </div>{/if}
   <form method="POST">
+    <input type="hidden" name="solution" value={p.solution} />
     <div class="field">
       <label for="title">Title</label><input
         type="text"
@@ -219,7 +220,7 @@
         </p>
         <SubmissionEditor
           action={`/admin/problems/${p.id}/test`}
-          storageKey={`admin_test_${p.id}`}
+          bind:code={p.solution}
           pendingStorageKey={`admin_test_${p.id}_${data.user?.username ?? ""}`}
           button="Run"
           publicCases={data.problem.test_cases.flatMap((test, index) =>

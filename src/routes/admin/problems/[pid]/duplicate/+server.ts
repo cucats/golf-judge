@@ -7,7 +7,7 @@ export const POST = async (event: Parameters<RequestHandler>[0]) => {
   requireAdmin(event);
   const p = await problem(event.params.pid);
   const row = (await one<{ id: number }>(
-    "INSERT INTO problems (title,statement,test_cases,grader,time_limit_ms,memory_limit_kb,created_at,updated_at) SELECT title || ' (copy)',statement,test_cases,grader,time_limit_ms,memory_limit_kb,$2,$2 FROM problems WHERE id=$1 RETURNING id",
+    "INSERT INTO problems (title,statement,test_cases,grader,time_limit_ms,memory_limit_kb,created_at,updated_at,solution) SELECT title || ' (copy)',statement,test_cases,grader,time_limit_ms,memory_limit_kb,$2,$2,solution FROM problems WHERE id=$1 RETURNING id",
     [p.id, now()],
   ))!;
   redirect(303, `/admin/problems/${row.id}`);

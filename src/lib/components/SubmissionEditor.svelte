@@ -12,6 +12,7 @@
     onaccepted,
     button = "Submit",
     publicCases = [],
+    code = $bindable(""),
   }: {
     action: string;
     storageKey?: string;
@@ -21,10 +22,10 @@
     onaccepted?: (bytes: number) => void;
     button?: string;
     publicCases?: { case: number; input: string; output: string }[];
+    code?: string;
   } = $props();
   type Pending = { id: string; events: string; code: string; action: string };
-  let code = $state(""),
-    submittedCode = $state<string | null>(null),
+  let submittedCode = $state<string | null>(null),
     busy = $state(false),
     result = $state<JudgeResult | null>(null),
     progress = $state<JudgeProgress | null>(null),

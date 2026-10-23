@@ -8,6 +8,7 @@ const problem: Problem = {
   id: 1,
   title: "Sandbox check",
   statement: "",
+  solution: "",
   grader: `from submission import f\nprint(f(int(input())))\n`,
   test_cases: [
     { input: "1", output: "2", public: true },

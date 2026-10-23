@@ -1,5 +1,10 @@
 import { randomBytes } from "node:crypto";
-import type { JudgeProgress, JudgeResult, Problem } from "#lib/types.js";
+import type {
+  JudgeProgress,
+  JudgeResult,
+  Problem,
+  JudgeProblem,
+} from "#lib/types.js";
 import { now } from "#lib/types.js";
 import { pool, one, query } from "./db.js";
 import { judge, workers } from "./runner.js";
@@ -9,7 +14,7 @@ interface Job {
   username: string;
   submission_id: string | null;
   code: string;
-  problem_snapshot: Problem;
+  problem_snapshot: JudgeProblem;
   lease_token: string;
 }
 
@@ -21,6 +26,14 @@ export async function enqueue(
 ): Promise<Response> {
   const tx = await pool.connect();
   const jobId = randomBytes(16).toString("base64url");
+  const snapshot: JudgeProblem = {
+    id: problem.id,
+    grader: problem.grader,
+    test_cases: problem.test_cases,
+    test_count: problem.test_count,
+    time_limit_ms: problem.time_limit_ms,
+    memory_limit_kb: problem.memory_limit_kb,
+  };
   try {
     await tx.query("BEGIN");
     await tx.query("SELECT pg_advisory_xact_lock(1730162401)");
@@ -92,7 +105,7 @@ export async function enqueue(
         problem.id,
         contestId === undefined ? null : jobId,
         code,
-        JSON.stringify(problem),
+        JSON.stringify(snapshot),
         problem.test_count,
         now(),
       ],

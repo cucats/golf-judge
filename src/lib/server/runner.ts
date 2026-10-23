@@ -14,7 +14,7 @@ import type { Duplex } from "node:stream";
 import type {
   JudgeResult,
   JudgeProgress,
-  Problem,
+  JudgeProblem,
   TestCase,
   TestCaseResult,
 } from "#lib/types.js";
@@ -157,7 +157,7 @@ export function evaluate(
 type Progress = (progress: JudgeProgress) => void | Promise<void>;
 async function run(
   slot: number,
-  problem: Problem,
+  problem: JudgeProblem,
   code: string,
   onProgress?: Progress,
 ): Promise<Omit<JudgeResult, "code_length">> {
@@ -473,7 +473,10 @@ async function run(
   }
 }
 
-export function validateCode(problem: Problem, code: string): string | null {
+export function validateCode(
+  problem: JudgeProblem,
+  code: string,
+): string | null {
   if (Buffer.byteLength(code) > 10240)
     return `Code too long: ${Buffer.byteLength(code)} bytes (max 10240 bytes)`;
   if (!code.trim()) return "Code is empty";
@@ -483,7 +486,7 @@ export function validateCode(problem: Problem, code: string): string | null {
   return null;
 }
 export async function judge(
-  problem: Problem,
+  problem: JudgeProblem,
   code: string,
   onProgress?: Progress,
 ): Promise<JudgeResult> {
