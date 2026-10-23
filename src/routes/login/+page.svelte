@@ -6,9 +6,7 @@
 <svelte:head><title>Login - CUCaTS Code Golf</title></svelte:head>
 <div class="login-container">
   <h1>Login</h1>
-  <p class="muted">
-    New here? Choose a username and password to create your account.
-  </p>
+  <p class="muted">Create or login</p>
   {#if form?.error}<p class="error">{form.error}</p>{/if}
   <form method="POST">
     <input type="hidden" name="next" value={form?.next ?? data.next} /><label
