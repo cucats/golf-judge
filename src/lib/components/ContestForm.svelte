@@ -17,9 +17,9 @@
     };
     form?: {
       error: string;
-      name: string;
-      duration: string;
-      problemIds: number[];
+      name?: string;
+      duration?: string;
+      problemIds?: number[];
     } | null;
   } = $props();
   const c = $derived(data.contest);
@@ -96,6 +96,9 @@
         >
           <button class="success">Start contest</button>
         </form>{/if}
+      {#if c.status === "ended"}<form method="POST" action="?/reopen">
+          <button class="success">Reopen contest</button>
+        </form>{/if}
       {#if c.status === "active"}<form
           method="POST"
           action={`/admin/contests/${c.id}/end`}
@@ -116,7 +119,7 @@
         </form>{/if}
     </div>{/if}
   {#if form?.error}<p class="error">{form.error}</p>{/if}
-  <form method="POST" class="card">
+  <form method="POST" action={c ? "?/save" : undefined} class="card">
     <div class="field">
       <label for="name">Contest name</label><input
         type="text"
