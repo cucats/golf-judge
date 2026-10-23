@@ -68,6 +68,7 @@
 <style>
   .problem-heading {
     text-align: center;
+    vertical-align: top;
   }
   .problem-heading a {
     display: flex;
@@ -76,7 +77,7 @@
     gap: 4px;
   }
   .problem-heading-title {
-    max-width: 16ch;
+    width: 16ch;
     font-size: 0.75rem;
     line-height: 1.25;
     white-space: normal;
