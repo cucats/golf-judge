@@ -1,5 +1,6 @@
 <script lang="ts">
   import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
+  import InlineItems from "#lib/components/InlineItems.svelte";
   import type { PageProps } from "./$types";
   import { durationLabel } from "#lib/types.js";
   let { data }: PageProps = $props();
@@ -26,8 +27,12 @@
       ><tbody
         >{#each data.contests as c}<tr
             ><td
-              ><a href={`/admin/contests/${c.id}`}>{c.name}</a
-              >{#if c.is_private}<span class="muted"> · Private</span>{/if}</td
+              ><InlineItems
+                ><a href={`/admin/contests/${c.id}`}>{c.name}</a
+                >{#if c.is_private}<span class="muted" aria-hidden="true"
+                    >·</span
+                  ><span class="muted">Private</span>{/if}</InlineItems
+              ></td
             ><td><span class={`badge ${c.status}`}>{c.status}</span></td><td
               >{durationLabel(c)}</td
             ><td>{c.problem_count}</td><td>{c.participant_count}</td><td

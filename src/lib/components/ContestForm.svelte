@@ -1,5 +1,6 @@
 <script lang="ts">
   import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
+  import InlineItems from "./InlineItems.svelte";
   import { untrack } from "svelte";
   import Timestamp from "./Timestamp.svelte";
   import { durationLabel, label } from "#lib/types.js";
@@ -73,21 +74,29 @@
   <h1>{c?.name ?? "New Contest"}</h1>
   {#if c}<div class="card">
       <p>
-        <strong>Status:</strong>
+        <strong>Status:</strong>{" "}
         <span class={`badge ${c.status}`}>{c.status}</span>
       </p>
-      <p><strong>Duration:</strong> {durationLabel(c)}</p>
+      <p><strong>Duration:</strong>{" "}{durationLabel(c)}</p>
       {#if c.start_time}<p>
-          <strong>Started:</strong>
+          <strong>Started:</strong>{" "}
           <Timestamp timestamp={c.start_time} />
         </p>{/if}
       <p>
-        <strong>Participants:</strong>
-        {data.counts.participants} · <strong>Submissions:</strong>
-        {data.counts.submissions}
+        <InlineItems wrap>
+          <span
+            ><strong>Participants:</strong>{" "}{data.counts.participants}</span
+          >
+          <InlineItems>
+            <span aria-hidden="true">·</span>
+            <span
+              ><strong>Submissions:</strong>{" "}{data.counts.submissions}</span
+            >
+          </InlineItems>
+        </InlineItems>
       </p>
       <p>
-        <strong>Share link:</strong>
+        <strong>Share link:</strong>{" "}
         <a href={`/contest/${c.id}`}>{data.origin}/contest/{c.id}</a>
       </p>
       <div class="btn-row">

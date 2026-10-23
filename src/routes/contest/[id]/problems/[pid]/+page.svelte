@@ -1,5 +1,6 @@
 <script lang="ts">
   import Breadcrumbs from "#lib/components/Breadcrumbs.svelte";
+  import InlineItems from "#lib/components/InlineItems.svelte";
   import type { PageProps } from "./$types";
   import { untrack } from "svelte";
   import { accepting, label } from "#lib/types.js";
@@ -47,9 +48,21 @@
   <section class="card">
     <h2>{label(data.problem.problem_order)}. {data.problem.title}</h2>
     <p class="muted">
-      {data.problem.test_count} cases · Time limit {data.problem.time_limit_ms} ms
-      total · Memory {data.problem.memory_limit_kb / 1024} MB{#if best !== null}
-        · Best: {best} bytes{/if}
+      <InlineItems wrap>
+        <span>{data.problem.test_count} cases</span>
+        <InlineItems>
+          <span aria-hidden="true">·</span>
+          <span>Time limit {data.problem.time_limit_ms} ms total</span>
+        </InlineItems>
+        <InlineItems>
+          <span aria-hidden="true">·</span>
+          <span>Memory {data.problem.memory_limit_kb / 1024} MB</span>
+        </InlineItems>
+        {#if best !== null}<InlineItems
+            ><span aria-hidden="true">·</span><span>Best: {best} bytes</span
+            ></InlineItems
+          >{/if}
+      </InlineItems>
     </p>
     <Markdown html={data.html} />
   </section>

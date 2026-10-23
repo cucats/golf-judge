@@ -1,5 +1,6 @@
 <script lang="ts">
   import Code from "./Code.svelte";
+  import InlineItems from "./InlineItems.svelte";
   import type {
     JudgeProgress,
     JudgeResult,
@@ -109,16 +110,21 @@
       aria-label={`Failed case ${firstFailure.case}`}
     >
       <h3>
-        Case {firstFailure.case}{#if !firstFailure.public}<span class="muted">
-            · Private</span
-          >{/if}
+        <InlineItems
+          ><span>Case {firstFailure.case}</span>{#if !firstFailure.public}<span
+              class="muted"
+              aria-hidden="true">·</span
+            ><span class="muted">Private</span>{/if}</InlineItems
+        >
       </h3>
       {@render values(firstFailure)}
     </section>
   {/if}
   {#if cases.length}
     <details class="case-results">
-      <summary>Test cases <span class="muted">({cases.length})</span></summary>
+      <summary
+        >Test cases{" "}<span class="muted">({cases.length})</span></summary
+      >
       <div class="case-list">
         {#each cases as test (test.case)}
           <details class="case-result">
@@ -180,7 +186,7 @@
     font-size: 0.9375rem;
     margin-bottom: 12px;
   }
-  h3 span {
+  h3 .muted {
     font-weight: 400;
   }
   .case-error {
