@@ -99,23 +99,24 @@ export async function authenticate(
     return "Username must be at most 32 characters";
   if (/\p{Cc}/u.test(username)) return "Username contains invalid characters";
   if (!password) return "Password is required";
-  await query(
-    "INSERT INTO users (username,is_admin,created_at) VALUES ($1,false,$2) ON CONFLICT DO NOTHING",
-    [username, now()],
-  );
-  const user = (await one<User & { password_hash: string | null }>(
-    "SELECT username,is_admin,password_hash FROM users WHERE username=$1",
+  let user = await one<{ password_hash: string | null }>(
+    "SELECT password_hash FROM users WHERE username=$1",
     [username],
-  ))!;
-  if (user.password_hash)
-    return (await verifyPassword(user.password_hash, password))
-      ? null
-      : "Incorrect password for this username";
-  if ([...password].length < 4)
-    return "Choose a password of at least 4 characters";
-  const claimed = await query(
-    "UPDATE users SET password_hash=$2 WHERE username=$1 AND password_hash IS NULL AND NOT is_admin RETURNING username",
-    [username, await hashPassword(password)],
   );
-  return claimed.length ? null : "Incorrect password for this username";
+  if (!user) {
+    if ([...password].length < 4)
+      return "Choose a password of at least 4 characters";
+    const created = await one<{ username: string }>(
+      "INSERT INTO users (username,is_admin,created_at,password_hash) VALUES ($1,false,$2,$3) ON CONFLICT DO NOTHING RETURNING username",
+      [username, now(), await hashPassword(password)],
+    );
+    if (created) return null;
+    user = await one<{ password_hash: string | null }>(
+      "SELECT password_hash FROM users WHERE username=$1",
+      [username],
+    );
+  }
+  return (await verifyPassword(user?.password_hash ?? null, password))
+    ? null
+    : "Incorrect password for this username";
 }
