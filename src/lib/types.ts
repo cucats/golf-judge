@@ -9,6 +9,7 @@ export interface Contest {
   start_time: number | null;
   status: string;
   created_at: number;
+  is_private: boolean;
 }
 export interface TestCase {
   input: string;

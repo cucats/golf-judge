@@ -24,11 +24,12 @@
         ></thead
       ><tbody
         >{#each data.contests as c}<tr
-            ><td><a href={`/admin/contests/${c.id}`}>{c.name}</a></td><td
-              ><span class={`badge ${c.status}`}>{c.status}</span></td
-            ><td>{durationLabel(c)}</td><td>{c.problem_count}</td><td
-              >{c.participant_count}</td
             ><td
+              ><a href={`/admin/contests/${c.id}`}>{c.name}</a
+              >{#if c.is_private}<span class="muted"> · Private</span>{/if}</td
+            ><td><span class={`badge ${c.status}`}>{c.status}</span></td><td
+              >{durationLabel(c)}</td
+            ><td>{c.problem_count}</td><td>{c.participant_count}</td><td
               ><a href={`/admin/contests/${c.id}/submissions`}
                 >{c.submission_count}</a
               ></td

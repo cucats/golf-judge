@@ -20,6 +20,7 @@
       name?: string;
       duration?: string;
       problemIds?: number[];
+      visibility?: string;
     } | null;
   } = $props();
   const c = $derived(data.contest);
@@ -30,6 +31,12 @@
     );
   let problemIds = $state<number[]>(untrack(initialIds));
   let candidate = $state<number | undefined>();
+  const initialVisibility = () =>
+    form?.visibility ?? (c?.is_private ? "private" : "public");
+  let visibility = $state(untrack(initialVisibility));
+  $effect(() => {
+    visibility = initialVisibility();
+  });
   $effect(() => {
     problemIds = initialIds();
     candidate = undefined;
@@ -141,6 +148,37 @@
       />
       <p class="muted">Use 0 for no time limit.</p>
     </div>
+    <fieldset class="visibility">
+      <legend>Visibility</legend>
+      <label
+        ><input
+          type="radio"
+          name="visibility"
+          value="public"
+          bind:group={visibility}
+        /> Public</label
+      >
+      <label
+        ><input
+          type="radio"
+          name="visibility"
+          value="private"
+          bind:group={visibility}
+        /> Private</label
+      >
+    </fieldset>
+    {#if visibility === "private"}<div class="field">
+        <label for="contest-password"
+          >{c?.is_private ? "New password" : "Password"}</label
+        >
+        <input
+          id="contest-password"
+          name="contest_password"
+          type="password"
+          autocomplete="new-password"
+          required={!c?.is_private}
+        />
+      </div>{/if}
     <h3>Problems</h3>
     {#if !editable}<p class="notice">
         The problem set is locked once the contest has started.
@@ -218,6 +256,23 @@
 </div>
 
 <style>
+  .visibility {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .visibility legend {
+    margin-bottom: 6px;
+  }
+  .visibility label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+  }
   .contest-problems {
     list-style: none;
     margin: 12px 0;

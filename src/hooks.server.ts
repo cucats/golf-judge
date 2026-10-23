@@ -2,6 +2,7 @@ import type { Handle } from "@sveltejs/kit/hooks";
 import { getUser } from "#lib/server/auth.js";
 import { pool, query } from "#lib/server/db.js";
 import { startJudgeWorkers, stopJudgeWorkers } from "#lib/server/jobs.js";
+import { gateContest } from "#lib/server/contest-access.js";
 import { building, dev } from "$app/env";
 export function init() {
   if (building) return;
@@ -28,5 +29,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     );
   }
   event.locals.user = await getUser(event);
+  const locked = await gateContest(event);
+  if (locked) return locked;
   return resolve(event);
 };

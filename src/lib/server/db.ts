@@ -32,10 +32,13 @@ export function id(value: string | undefined): number {
     error(404, "Not found");
   return n;
 }
+export const contestFields =
+  "c.id,c.name,c.duration,c.start_time,c.status,c.created_at,(c.password_hash IS NOT NULL) AS is_private";
 export async function contest(value: string | number): Promise<Contest> {
-  const row = await one<Contest>("SELECT * FROM contests WHERE id=$1", [
-    typeof value === "number" ? value : id(value),
-  ]);
+  const row = await one<Contest>(
+    `SELECT ${contestFields} FROM contests c WHERE c.id=$1`,
+    [typeof value === "number" ? value : id(value)],
+  );
   if (!row) error(404, "Contest not found");
   return row;
 }

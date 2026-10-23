@@ -1,7 +1,7 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { fail, redirect } from "@sveltejs/kit";
-import { requireAdmin } from "./auth.js";
-import { pool, problem, query, one } from "./db.js";
+import { hashPassword, requireAdmin } from "./auth.js";
+import { contestFields, pool, problem, query, one } from "./db.js";
 import type { Contest, Problem } from "#lib/types.js";
 import { normalize, now } from "#lib/types.js";
 export const defaultProblem: Problem = {
@@ -17,7 +17,7 @@ export const defaultProblem: Problem = {
 };
 export const usage = (pid: number) =>
   query<Contest>(
-    "SELECT c.* FROM contests c JOIN contest_problems cp ON cp.contest_id=c.id WHERE cp.problem_id=$1 ORDER BY c.created_at DESC",
+    `SELECT ${contestFields} FROM contests c JOIN contest_problems cp ON cp.contest_id=c.id WHERE cp.problem_id=$1 ORDER BY c.created_at DESC`,
     [pid],
   );
 export async function saveProblem(event: RequestEvent, pid = 0) {
@@ -105,7 +105,9 @@ export async function saveContest(event: RequestEvent, cid = 0) {
   requireAdmin(event);
   const f = await event.request.formData(),
     name = String(f.get("name") ?? "").trim(),
-    duration = String(f.get("duration") ?? "").trim();
+    duration = String(f.get("duration") ?? "").trim(),
+    visibility = String(f.get("visibility") ?? ""),
+    password = String(f.get("contest_password") ?? "");
   const values = f.getAll("problem_ids");
   const problemIds = values.map(Number);
   let message = "";
@@ -128,30 +130,61 @@ export async function saveContest(event: RequestEvent, cid = 0) {
     message = "Duration must be a whole number of minutes, 0 or more";
   else if (Number(duration) * 60 > 2147483647)
     message = "Duration is too large";
-  if (message) return fail(400, { error: message, name, duration, problemIds });
+  else if (visibility !== "public" && visibility !== "private")
+    message = "Invalid visibility";
+  if (message)
+    return fail(400, {
+      error: message,
+      name,
+      duration,
+      problemIds,
+      visibility,
+    });
+  const passwordHash =
+    visibility === "private" && password ? await hashPassword(password) : null;
   const tx = await pool.connect();
   try {
     await tx.query("BEGIN");
     let pending = true;
     if (cid) {
       const c = (
-        await tx.query<Contest>(
+        await tx.query<Contest & { password_hash: string | null }>(
           "SELECT * FROM contests WHERE id=$1 FOR UPDATE",
           [cid],
         )
       ).rows[0];
       if (!c) throw new Error("Contest not found");
       pending = c.status === "pending";
-      await tx.query("UPDATE contests SET name=$1,duration=$2 WHERE id=$3", [
+      const savedHash =
+        visibility === "private" ? (passwordHash ?? c.password_hash) : null;
+      if (visibility === "private" && !savedHash) {
+        await tx.query("ROLLBACK");
+        return fail(400, {
+          error: "A password is required for a private contest",
+          name,
+          duration,
+          problemIds,
+          visibility,
+        });
+      }
+      await tx.query(
+        "UPDATE contests SET name=$1,duration=$2,password_hash=$4 WHERE id=$3",
+        [name, Number(duration) * 60, cid, savedHash],
+      );
+    } else if (visibility === "private" && !passwordHash) {
+      await tx.query("ROLLBACK");
+      return fail(400, {
+        error: "A password is required for a private contest",
         name,
-        Number(duration) * 60,
-        cid,
-      ]);
+        duration,
+        problemIds,
+        visibility,
+      });
     } else
       cid = (
         await tx.query<{ id: number }>(
-          "INSERT INTO contests (name,duration,status,created_at) VALUES ($1,$2,'pending',$3) RETURNING id",
-          [name, Number(duration) * 60, now()],
+          "INSERT INTO contests (name,duration,status,created_at,password_hash) VALUES ($1,$2,'pending',$3,$4) RETURNING id",
+          [name, Number(duration) * 60, now(), passwordHash],
         )
       ).rows[0].id;
     if (pending) {
@@ -166,6 +199,7 @@ export async function saveContest(event: RequestEvent, cid = 0) {
           name,
           duration,
           problemIds,
+          visibility,
         });
       }
       await tx.query("DELETE FROM contest_problems WHERE contest_id=$1", [cid]);

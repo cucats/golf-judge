@@ -63,6 +63,7 @@ describe("judge verdicts", () => {
 
 test("unlimited contests stay open until manually ended", () => {
   const c: Contest = {
+    is_private: false,
     id: 1,
     name: "Contest",
     duration: 0,
