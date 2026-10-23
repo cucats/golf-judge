@@ -13,6 +13,7 @@
     <a class="button" href="/admin/contests/new">New contest</a><a
       href="/admin/problems">Problem bank ({data.bankSize})</a
     >
+    <a href="/admin/users">Users</a>
   </div>
   <div class="card table-scroll">
     <table class="table">
