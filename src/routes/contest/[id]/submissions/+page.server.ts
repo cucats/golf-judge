@@ -11,7 +11,17 @@ export const load = async (event: Parameters<PageServerLoad>[0]) => {
     error(403, "You can only view your own submissions");
   const c = await contest(event.params.id);
   const board = await leaderboard(c.id);
-  const entry = board.entries.find((e) => e.username === user);
+  const entry =
+    board.entries.find((e) => e.username === user) ??
+    (user === viewer.username
+      ? {
+          username: viewer.username,
+          rank: 0,
+          problems_solved: 0,
+          total_bytes: 0,
+          problem_results: board.problems.map(() => null),
+        }
+      : undefined);
   if (!entry) error(404, "Player not found");
   const submissions = await query<Submission>(
     "SELECT * FROM submissions WHERE contest_id=$1 AND username=$2 ORDER BY created_at,id",

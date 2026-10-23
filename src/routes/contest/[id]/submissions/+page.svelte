@@ -63,9 +63,9 @@
     <h1 class="player-name">{data.entry.username}</h1>
     <div class="stat-row">
       <div class="stat">
-        <span class="stat-value">#{data.entry.rank}</span><span
-          class="stat-label">of {data.playerCount}</span
-        >
+        <span class="stat-value"
+          >{data.entry.rank ? `#${data.entry.rank}` : "—"}</span
+        ><span class="stat-label">of {data.playerCount}</span>
       </div>
       <div class="stat">
         <span class="stat-value"
@@ -82,25 +82,34 @@
     </div>
   </div>
   <div class="problem-grid">
-    {#each solutions as p}<a
+    {#each solutions as p}<div
         class={`problem-card medal-${p.result?.medal ?? "none"}`}
         class:selected={p.id === selected?.id}
         class:unsolved={!p.result}
-        href={`/contest/${data.contest.id}/submissions?user=${userQuery}${p.id === selected?.id ? "" : `&problem=${p.id}`}`}
-        ><span class="pc-label">{label(p.problem_order)}</span><span
-          class="pc-title">{p.title}</span
-        ><span class="pc-score" class:muted={!p.result}
-          >{p.result?.medal === "diamond"
-            ? "💎 "
-            : p.result?.medal === "gold"
-              ? "🥇 "
-              : ""}{p.result
-            ? `${p.result.code_length} bytes`
-            : "unsolved"}</span
+      >
+        <a
+          class="problem-link"
+          href={`/contest/${data.contest.id}/problems/${p.id}`}
+          ><span class="pc-label">{label(p.problem_order)}</span><span
+            class="pc-title">{p.title}</span
+          ></a
+        ><a
+          class="pc-score score-link"
+          href={`/contest/${data.contest.id}/submissions?user=${userQuery}${p.id === selected?.id ? "" : `&problem=${p.id}`}`}
+          aria-label={`Submissions for ${label(p.problem_order)}. ${p.title}`}
+          ><span class:muted={!p.result}
+            >{p.result?.medal === "diamond"
+              ? "💎 "
+              : p.result?.medal === "gold"
+                ? "🥇 "
+                : ""}{p.result
+              ? `${p.result.code_length} bytes`
+              : "unsolved"}</span
+          ></a
         ><span class="pc-attempts muted"
           >{p.attempts} attempt{p.attempts === 1 ? "" : "s"}</span
-        ></a
-      >{/each}
+        >
+      </div>{/each}
   </div>
   {#if selected}<div class="filter-bar">
       Showing <strong>{label(selected.problem_order)}. {selected.title}</strong
@@ -188,3 +197,11 @@
     </table>
   </div>
 </div>
+
+<style>
+  .problem-link {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+</style>

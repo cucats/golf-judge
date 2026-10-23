@@ -1,11 +1,19 @@
 import type { PageServerLoad, Actions } from "./$types";
-import { contest, inContest, id, one } from "#lib/server/db.js";
+import {
+  contest,
+  contestProblems,
+  inContest,
+  id,
+  one,
+} from "#lib/server/db.js";
 import { problemAccess } from "#lib/server/auth.js";
 import { markdown } from "#lib/markdown.js";
 export const load = async (event: Parameters<PageServerLoad>[0]) => {
   const c = await contest(event.params.id);
   problemAccess(c, event);
   const p = await inContest(c.id, id(event.params.pid));
+  const problems = await contestProblems(c.id);
+  const position = problems.findIndex((problem) => problem.id === p.id);
   const best = event.locals.user
     ? await one<{ bytes: number | null }>(
         "SELECT MIN(code_length) AS bytes FROM submissions WHERE contest_id=$1 AND problem_id=$2 AND username=$3 AND verdict='AC'",
@@ -14,6 +22,8 @@ export const load = async (event: Parameters<PageServerLoad>[0]) => {
     : undefined;
   return {
     contest: c,
+    previous: problems[position - 1] ?? null,
+    next: problems[position + 1] ?? null,
     problem: {
       id: p.id,
       title: p.title,

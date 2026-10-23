@@ -16,6 +16,10 @@
     ]}
   />
   <div class="btn-row page-links">
+    {#if data.user}<a
+        href={`/contest/${data.contest.id}/submissions?user=${encodeURIComponent(data.user.username)}`}
+        >My submissions</a
+      >{/if}
     <a href={`/contest/${data.contest.id}/leaderboard`}>Leaderboard</a><Timer
       contest={data.contest}
     />

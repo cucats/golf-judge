@@ -39,9 +39,23 @@
     ]}
   />
   <div class="btn-row page-links">
+    {#if data.user}<a
+        href={`/contest/${data.contest.id}/submissions?user=${encodeURIComponent(data.user.username)}&problem=${data.problem.id}`}
+        >My submissions</a
+      >{/if}
     <a href={`/contest/${data.contest.id}/leaderboard`}>Leaderboard</a><Timer
       contest={data.contest}
     />
+    {#if data.previous}<a
+        href={`/contest/${data.contest.id}/problems/${data.previous.id}`}
+        title={`${label(data.previous.problem_order)}. ${data.previous.title}`}
+        >Previous problem</a
+      >{/if}
+    {#if data.next}<a
+        href={`/contest/${data.contest.id}/problems/${data.next.id}`}
+        title={`${label(data.next.problem_order)}. ${data.next.title}`}
+        >Next problem</a
+      >{/if}
   </div>
 </div>
 <div class="problem-layout">

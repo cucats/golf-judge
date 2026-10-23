@@ -28,9 +28,11 @@
       <thead
         ><tr
           ><th>Rank</th><th>Player</th><th>Solved</th><th>Bytes</th
-          >{#each data.board.problems as p}<th title={p.title}
+          >{#each data.board.problems as p}<th class="problem-heading"
               ><a href={`/contest/${data.contest.id}/problems/${p.id}`}
-                >{label(p.problem_order)}</a
+                ><span>{label(p.problem_order)}</span><span
+                  class="problem-heading-title">{p.title}</span
+                ></a
               ></th
             >{/each}</tr
         ></thead
@@ -62,3 +64,22 @@
     </table>
   </div>
 </div>
+
+<style>
+  .problem-heading {
+    text-align: center;
+  }
+  .problem-heading a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .problem-heading-title {
+    max-width: 16ch;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+</style>
