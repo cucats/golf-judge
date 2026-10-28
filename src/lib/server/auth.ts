@@ -93,6 +93,7 @@ export async function verifyPassword(hash: string | null, password: string) {
 export async function authenticate(
   username: string,
   password: string,
+  email: string | null = null,
 ): Promise<string | null> {
   if (!username) return "Username is required";
   if ([...username].length > 32)
@@ -106,10 +107,17 @@ export async function authenticate(
   if (!user) {
     if ([...password].length < 4)
       return "Choose a password of at least 4 characters";
-    const created = await one<{ username: string }>(
-      "INSERT INTO users (username,is_admin,created_at,password_hash) VALUES ($1,false,$2,$3) ON CONFLICT DO NOTHING RETURNING username",
-      [username, now(), await hashPassword(password)],
-    );
+    let created;
+    try {
+      created = await one<{ username: string }>(
+        "INSERT INTO users (username,is_admin,created_at,password_hash,email) VALUES ($1,false,$2,$3,$4) ON CONFLICT (username) DO NOTHING RETURNING username",
+        [username, now(), await hashPassword(password), email],
+      );
+    } catch (error) {
+      if ((error as { constraint?: string }).constraint === "idx_users_email")
+        return "Email is already in use";
+      throw error;
+    }
     if (created) return null;
     user = await one<{ password_hash: string | null }>(
       "SELECT password_hash FROM users WHERE username=$1",

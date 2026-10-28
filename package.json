@@ -20,6 +20,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"@types/bun": "^1.4.2",
 		"@types/node": "^24",
+		"@types/nodemailer": "^8.0.2",
 		"@types/pg": "^8",
 		"@types/sanitize-html": "^2",
 		"prettier": "^3.9.10",
@@ -36,6 +37,7 @@
 		"ace-builds": "^1.43.3",
 		"highlight.js": "^11.11.1",
 		"marked": "^17",
+		"nodemailer": "^10.2.1",
 		"pg": "^8",
 		"sanitize-html": "^2"
 	},

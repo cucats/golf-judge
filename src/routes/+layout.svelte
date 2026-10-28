@@ -11,7 +11,7 @@
     <a href="/tips">Tips</a>
     {#if data.user?.is_admin}<a href="/admin">Admin</a>{/if}
     {#if data.user}<span class="nav-username">{data.user.username}</span><a
-        href="/change-password">Change password</a
+        href="/settings">Settings</a
       >
       <form method="POST" action="/logout">
         <button class="link-btn">Logout</button>

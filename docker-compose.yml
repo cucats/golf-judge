@@ -8,6 +8,11 @@ services:
     security_opt: [seccomp=unconfined, apparmor=unconfined]
     environment:
       DATABASE_URL: postgres://user:password@db:5432/codegolf
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-noreply@cucats.org}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@cucats.org}
     networks:
       - golf
       - proxy

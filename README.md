@@ -29,11 +29,26 @@ manage the site through `/admin`.
 
 ## Configuration
 
-| Variable           | Default   | Purpose                                                          |
-| ------------------ | --------- | ---------------------------------------------------------------- |
-| `DATABASE_URL`     | required  | Postgres connection string                                       |
-| `JUDGE_WORKERS`    | CPU count | Maximum submissions judged concurrently                         |
-| `INSECURE_COOKIES` | unset     | Set to allow the session cookie over plain http (local dev only) |
+| Variable           | Default              | Purpose                                                         |
+| ------------------ | -------------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`     | required             | Postgres connection string                                      |
+| `JUDGE_WORKERS`    | CPU count            | Maximum submissions judged concurrently                         |
+| `INSECURE_COOKIES` | unset                | Set to allow the session cookie over plain http (local dev only) |
+| `SMTP_HOST`       | required for reset   | SMTP server hostname                                            |
+| `SMTP_PORT`       | `587`                | SMTP port; 465 uses implicit TLS, other ports require STARTTLS    |
+| `SMTP_USER`       | `noreply@cucats.org`  | SMTP account username                                           |
+| `SMTP_PASSWORD`   | required for reset   | SMTP account password                                           |
+| `SMTP_FROM`       | `noreply@cucats.org`  | Sender address                                                  |
+
+Copy `.env.example` to `.env` and fill in the SMTP credentials. Docker Compose
+passes these variables to the app; Bun also reads `.env` for local development.
+
+Email is optional when creating an account and can be added, changed or removed
+in Settings. Existing logins do not change the stored email. Each email belongs
+to one account. On the login page, **Forgot** sends a six-character code to the
+account's email address. Codes expire after ten minutes and allow five attempts;
+requests are limited per email and IP address. A successful reset revokes old
+sessions and logs the user in with the new password.
 
 ## Problems
 
@@ -65,3 +80,7 @@ Problems are stored in PostgreSQL and managed through the admin problem bank.
 ```sh
 bun test
 ```
+
+Database authentication tests run with `RUN_AUTH_TESTS=1 DATABASE_URL=... bun test
+tests/password-reset.test.ts`. They create and remove a separate schema. CI runs
+these tests against PostgreSQL.

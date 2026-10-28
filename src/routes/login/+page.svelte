@@ -25,6 +25,16 @@
       name="password"
       autocomplete="current-password"
       required
-    /><button>Login</button>
+    /><label for="email">Email (optional)</label><input
+      id="email"
+      type="email"
+      name="email"
+      autocomplete="email"
+      maxlength="254"
+      value={form?.email ?? ""}
+    />
+    <div class="btn-row">
+      <button>Login</button><a href="/reset-password">Forgot</a>
+    </div>
   </form>
 </div>
