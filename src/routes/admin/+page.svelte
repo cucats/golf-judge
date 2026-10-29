@@ -15,6 +15,7 @@
       href="/admin/problems">Problem bank ({data.bankSize})</a
     >
     <a href="/admin/users">Users</a>
+    <a href="/admin/queue">Queue</a>
   </div>
   <div class="card table-scroll">
     <table class="table">
